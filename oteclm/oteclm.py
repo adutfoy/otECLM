@@ -392,7 +392,7 @@ class ECLM(object):
 
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
-        if not self.verify_MankamoConstraints(startingPoint):        
+        if not self.verifyMankamoConstraints(startingPoint):        
             startingPoint = self.computeValidMankamoStartingPoint(0.7, verbose)
             if verbose:
                 print('Changed starting point : ', startingPoint)
@@ -1854,7 +1854,6 @@ class ECLM(object):
         return graph
 
 
-
     def setTotalImpactVector(self, totalImpactVector):
         r"""
         Accessor to the total impact vector.
@@ -1866,6 +1865,17 @@ class ECLM(object):
         """
 
         self.totalImpactVector = totalImpactVector
+
+        # Remise à jour du n
+        self.n = totalImpactVector.getSize()-1
+        
+        #Remise à jour Pt
+        N = sum(totalImpactVector)
+        Pt = 0.0
+        for i in range(1,self.n+1):
+            Pt += i*totalImpactVector[i]
+        Pt /= self.n*N
+        self.Pt = Pt
 
 
     def setIntegrationAlgo(self, integrationAlgo):
@@ -1905,32 +1915,6 @@ class ECLM(object):
         """
 
         self.generalParameter = generalParameter
-
-
-    def setN(self, n):
-        r"""
-        Accessor to the size of the CCF group :math:`n`.
-
-        Parameters
-        ----------
-        n : int
-            The CCF group size.
-        """
-
-        self.n = n
-
-
-    def setPt(self, Pt):
-        r"""
-        Accessor to the probability :math:`P_t`.
-
-        Parameters
-        ----------
-        Pt : float, :math:`0 < P_t < 1`
-            The estimator of PSG(:math:`|n`).
-        """
-
-        self.Pt = Pt
 
 
     def getTotalImpactVector(self):
