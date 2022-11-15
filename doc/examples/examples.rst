@@ -4,4 +4,4 @@ Examples
 .. toctree::
     :maxdepth: 1
 
-    eclm.ipynb
+   ../auto_example/plot_eclm.py
