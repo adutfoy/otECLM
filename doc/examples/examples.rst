@@ -1,7 +1,7 @@
 Examples
 ========
 
-This section illustrates how to use the template.
+This section illustrates how to use the ECLM class.
 
 
 
