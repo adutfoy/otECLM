@@ -4,7 +4,7 @@ Example : Extended Common Load Modelling
 ========================================
 """
 # %%
-# | Import the required modules
+# Import the required modules
 
 # %%
 import openturns as ot
@@ -76,7 +76,8 @@ print('finalLogLikValue : ', finalLogLikValue)
 gl = ot.GridLayout(2,3)
 for i in range(6):
     gl.setGraph(i//3, i%3, graphesCol[i])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 # ==============================
@@ -120,7 +121,7 @@ startingPoint = mankamoParam[1:4]
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
 myECLM.estimateBootstrapParamSampleFromMankamo(Nbootstrap, startingPoint, blockSize, fileNameSampleParam)
 
-# | Create the sample of all the ECLM probabilities associated to the sample of the parameters.
+# Create the sample of all the ECLM probabilities associated to the sample of the parameters.
 
 # %%
 fileNameECLMProbabilities = 'sampleECLMProbabilitiesFromMankamo_{}.csv'.format(Nbootstrap)
@@ -137,18 +138,21 @@ myECLM.computeECLMProbabilitiesFromMankano(blockSize, fileNameSampleParam, fileN
 graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam = myECLM.analyseGraphsECLMParam(fileNameSampleParam)
 
 # %%
-graphPairsMankamoParam
+view = View(graphPairsMankamoParam)
+plt.show()
 
 # %%
-graphPairsGeneralParam
+view = View(graphPairsGeneralParam)
+plt.show()
 
-# | We estimate the distribution of each parameter with a Histogram and a normal kernel smoothing.
+# We estimate the distribution of each parameter with a Histogram and a normal kernel smoothing.
 
 # %%
 gl = ot.GridLayout(3,3)
 for k in range(len(graphMarg_list)):
     gl.setGraph(k//3, k%3, graphMarg_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 # ==================================================================
@@ -171,47 +175,56 @@ descMargPES = desc_list[4]
 descMargPTS = desc_list[5]
 
 # %%
-graphPairs_list[0]
+view = View(graphPairs_list[0])
+plt.show()
 
 # %%
-graphPairs_list[1]
+view = View(graphPairs_list[1])
+plt.show()
 
 # %%
-graphPairs_list[2]
+view = View(graphPairs_list[2])
+plt.show()
 
 # %%
-graphPairs_list[3]
+view = View(graphPairs_list[3])
+plt.show()
 
 # %%
-# | Fix a k <=kMax
+# Fix a k <=kMax
 
 k = 0
-graphPEG_PES_PTS_list[k]
+view = View(graphPEG_PES_PTS_list[k])
+plt.show()
 
 # %%
 len(graphMargPEG_list)
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPEG_list)):
     gl.setGraph(k//3, k%3, graphMargPEG_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPSG_list)):
     gl.setGraph(k//3, k%3, graphMargPSG_list[k])
-gl    
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPES_list)):
     gl.setGraph(k//3, k%3, graphMargPES_list[k])
-gl    
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPTS_list)):
     gl.setGraph(k//3, k%3, graphMargPTS_list[k])
-gl    
+view = View(gl)
+plt.show()
 
 # %%
 # ============================================
@@ -243,31 +256,35 @@ for k in range(len(IC_PES_list)):
 for k in range(len(IC_PTS_list)):
     print('IC_PTS_', k, ' = ', IC_PTS_list[k])
 
-# | We draw all the estimated distributions and the title gives the best model.
+# We draw all the estimated distributions and the title gives the best model.
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPEG_list)):
     gl.setGraph(k//3, k%3, graphMargPEG_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPSG_list)):
     gl.setGraph(k//3, k%3, graphMargPSG_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPES_list)):
         gl.setGraph(k//3, k%3, graphMargPES_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPTS_list)):
     gl.setGraph(k//3, k%3, graphMargPTS_list[k])
-gl
+view = View(gl)
+plt.show()
 
 # %%
 # ====================================================================================
@@ -275,6 +292,7 @@ gl
 # ====================================================================================
 # 
 # We fix *p* and we get the minimal multiplicity :math:`k_{max}` such that :
+#
 # .. math::
 #
 #    k_{max} = \arg\max \{k| \mbox{PTS}(k|n) \geq p \}
@@ -288,7 +306,7 @@ nameSeuil = '10M5'
 kMax = myECLM.computeKMaxPTS(p)
 print('kMax = ', kMax)
 
-# | Then we use the bootstrap sample of the Mankamo parameters to generate a sample of :math:`k_{max}`. We analyse the distribution of $k_{max}$: we estimate it with the empirical distribution and we derive a confidence interval of order :math:`90\%`.
+# Then we use the bootstrap sample of the Mankamo parameters to generate a sample of :math:`k_{max}`. We analyse the distribution of $k_{max}$: we estimate it with the empirical distribution and we derive a confidence interval of order :math:`90\%`.
 
 # %%
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
@@ -296,4 +314,5 @@ fileNameSampleKmax = 'sampleKmaxFromMankamo_{}_{}.csv'.format(Nbootstrap, nameSe
 gKmax = myECLM.computeAnalyseKMaxSample(p, blockSize, fileNameSampleParam, fileNameSampleKmax)
 
 # %%
-gKmax
+view = View(gKmax)
+plt.show()
