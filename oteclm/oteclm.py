@@ -417,7 +417,7 @@ class ECLM(object):
         self.setMankamoParameter(mankamoParam)
         # General parameter = (pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
         # ==> mis à jour par setMankamoParameter
-        #generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
+        generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
         #self.setGeneralParameter(generalParam)
 
         ######################################
