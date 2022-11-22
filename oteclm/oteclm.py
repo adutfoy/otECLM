@@ -934,7 +934,7 @@ class ECLM(object):
 
         Notes
         -----
-        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\dots, p_n^{emp}]` where :math:`p_k^{emp} = \dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
+        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\dots, p_n^{emp}]` where :math:`p_k^{emp} = \dfrac{V_t^{n,N}[k]}{N}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
 
         The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
