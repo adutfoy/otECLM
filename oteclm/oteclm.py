@@ -37,7 +37,7 @@ class ECLM(object):
 
     We define the ECLM probabilities of a CCF group of size :math:`n`, for :math:`0 \leq k \leq n` are the following:
 
-        - :math:`\mathrm{PSG}(k)`: probability that a  specific set of :math:`k` components fail.
+        - :math:`\mathrm{PSG}(k|n)`: probability that a  specific set of :math:`k` components fail.
         - :math:`\mathrm{PEG}(k|n)`: probability that a specific set of :math:`k` components fail  while the other :math:`(n-k)` survive.
         - :math:`\mathrm{PES}(k|n)`: probability that some set of :math:`k` components fail while the other :math:`(n-k)` survive.
         - :math:`\mathrm{PTS}(k|n)`: probability that  at least some specific set of :math:`k` components fail.
@@ -57,8 +57,8 @@ class ECLM(object):
     .. math::
 
         \begin{array}{rcl}
-          \mathrm{PSG}(k) & = & \mathbb{P}\left[S>R_1, \dots, S>R_k\right]\\
-                        & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k\, ds
+          \mathrm{PSG}(k|n) & = & \mathbb{P}\left[S>R_1, \dots, S>R_k\right]\\
+                            & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k\, ds
         \end{array}
 
     We get the :math:`\mathrm{PES}(k|n)` probabilities and  :math:`\mathrm{PTS}(k|n)` with the relations:
@@ -81,7 +81,7 @@ class ECLM(object):
     .. math::
         :label: generalParam
 
-        (\pi, d_b, d_x, d_R, y_{xm})
+        \vect{\theta} = (\pi, d_b, d_x, d_R, y_{xm})
 
     defined by:
 
@@ -106,7 +106,7 @@ class ECLM(object):
     .. math::
         :label: PSG_red
 
-        \mathrm{PSG}(k)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
+        \mathrm{PSG}(k|n)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
 
     Note that for :math:`k=1`, the integral can be computed explicitly:
 
@@ -114,15 +114,68 @@ class ECLM(object):
         :label: PSG1_red
 
         \begin{array}{lcl}
-           PSG(1) & = & \displaystyle \int_{-\infty}^{+\infty}\left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) \right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy +  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
+           \mathrm{PSG}(1|n) & = & \displaystyle \int_{-\infty}^{+\infty}\left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) \right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy +  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
                  & = & \pi \left[1-\Phi\left(\dfrac{1}{\sqrt{d_b^2+d_R^2}}\right)\right] +  (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]
         \end{array}
 
     The computation of the :math:`\mathrm{PEG}(k|n)`  and :math:`\mathrm{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
 
-    The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`k` for :math:`0 \leq k \leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \sum_{k=0}^n V_t^{n,N}[k]`.
 
-    **Estimation method proposed by Mankamo:**
+    **The probabilistic model:**
+
+    We denote by  :math:`N^n` the random variable that counts the number of failure events in the CCF group under one test or demand. Then the range of :math:`N^n` is :math:`[0, n]` and its probability law is :math:`\mathbb{P}\left[N^n=k\right] =  \mathrm{PES}(k|n)`.
+
+    Under :math:`N` test or demands, we denote by :math:`N^{n,N}_t` the random variable that counts the number of times when :math:`k` failure events have occured, for each :math:`k` in :math:`[0, n]`:
+
+    .. math::
+        :label: NnNt
+
+        N^{n,N}_t = \sum_{k=1}^N N^n_k
+
+    where the random variables :math:`(N^n_1, \dots, N^n_N)` are independant and identically distributed as :math:`N^n`. The :math:`N^{n,N}_t` follows a Multinomial distribution parameterized by :math:`(N,(p_0, \dots, p_n))` with:
+
+    .. math::
+
+        (p_0, \dots, p_n) =  (\mathrm{PES}(0|n), \dots,  \mathrm{PES}(n|n))
+
+
+    **The data:**
+
+    The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`V_t^{n,N}[k]` for :math:`0 \leq k \leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \sum_{k=0}^n V_t^{n,N}[k]`.
+
+    Then :math:`V_t^{n,N}` is a realization of the random variable :math:`N^{n,N}_t`.
+
+    **Data likelihood:**
+
+    The log-likelihood of the model is defined by:
+
+    .. math::
+
+        \log \mathcal{L}(\vect{\theta}|V_t^{n,N})  =  \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PES}(k|n)
+
+
+    The optimal parameter :math:`\vect{\theta}` maximises the log-likelihoodand is defined as:
+
+    .. math::
+        :label: optimGen
+
+        \vect{\theta}_{optim}   =   \arg \max_{\vect{\theta}} \log \mathcal{L}(\vect{\theta}|V_t^{n,N})
+
+    Remark: As we have :eq:`PES_red`, then the log-likelihood can be written as:
+
+    .. math::
+
+         \log \cL(\vect{\theta}_t|V_t^{n,N})   = \sum_{k=0}^n V_t^{n,N}[k] \log   C_n^k  +  \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
+
+    Noting that the first term does not depend on the parameter :math:`\vect{\theta}`, then we also have:
+
+    .. math::
+        :label: optimGenReduced
+
+        \vect{\theta}_{optim}  =  \arg \max_{\vect{\theta}} \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
+
+
+    **Mankamo method:**
 
     Mankamo introduces a new set of parameters:  :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` defined from the general parameter :eq:`generalParam` as follows:
 
@@ -130,7 +183,7 @@ class ECLM(object):
         :label: Param2
 
         \begin{array}{rcl}
-             P_t & = & \mathrm{PSG}(1) = \displaystyle  \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
+             P_t & = & \mathrm{PSG}(1|n) = \displaystyle  \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
              P_x &  = &\displaystyle  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy = (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]\\
              c_{co} & = & \dfrac{d_b^2}{d_b^2+d_R^2}\\
              c_x & = & \dfrac{d_x^2}{d_x^2+d_R^2}
@@ -170,19 +223,12 @@ class ECLM(object):
 
          \hat{P}_t = \sum_{i=1}^n\dfrac{iV_t^{n,N}[i]}{nN}
 
-
-    The likelihood of the model is written with respect to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)` :
-
-    .. math::
-
-         \log \mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N}) = \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
-
-    Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model:
+    Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model and then the expression:
 
     .. math::
         :label: optimMankamo
 
-         (P_x, C_{co}, C_x)_{optim}  = \arg \max_{(P_x, C_{co}, C_x)} \log \mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N})
+         (P_x, C_{co}, C_x)_{optim}  = \arg \max_{(P_x, C_{co}, C_x)}  \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
 
     The optimization is done under the following constraints:
 
@@ -298,7 +344,7 @@ class ECLM(object):
         # Constraint 2 : Cx > Cco
         if verbose: 
             print('Px must be lesser than ', terme_min)
-            print('Cco mus be lesser than ',  Cx)
+            print('Cco must be lesser than ',  Cx)
 
         proposedPoint = ot.Point([terme_min/2, Cx/2, Cx])
         return proposedPoint
@@ -322,7 +368,7 @@ class ECLM(object):
         paramList : :class:`~openturns.Point`
             The optimal point :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
         finalLogLikValue : float
-            The value of the log-likelihood function at the optimal point.
+            The value of the reduced log-likelihood function :eq:`optimGenReduced` at the optimal point.
         graphList : list of :class:`~openturns.Graph`
             The collection of graphs drawing the log-likelihood function at the optimal point when one or two components are fixed.
 
@@ -419,7 +465,7 @@ class ECLM(object):
         # ==> mis à jour par setMankamoParameter
         generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
         #self.setGeneralParameter(generalParam)
-
+        
         ######################################
         # Graphes de la log vraisemblance avec point optimal
 
@@ -459,6 +505,7 @@ class ECLM(object):
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedCcoCx.add(myCloud)
             g_fixedCcoCx.setXTitle(r'$\log P_x$')
+            g_fixedCcoCx.setYTitle(r'$\log \, \mathcal{L}$')
             g_fixedCcoCx.setTitle(r'Log likelihood at $(C_{co}, C_{x}) = $'+ format(Cco_optim,'.2E') + ',' +  format(Cx_optim,'.2E'))
 
             ####################
@@ -472,6 +519,7 @@ class ECLM(object):
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCx.add(myCloud)
             g_fixedlogPxCx.setXTitle(r'$C_{co}$')
+            g_fixedlogPxCx.setYTitle(r'$\log \, \mathcal{L}$')
             g_fixedlogPxCx.setTitle(r'Log likelihood at $(\log P_{x}, C_{x}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cx_optim,'.2E'))
             minValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMax()[1]
@@ -491,6 +539,7 @@ class ECLM(object):
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCco.add(myCloud)
             g_fixedlogPxCco.setXTitle(r'$C_x$')
+            g_fixedlogPxCco.setYTitle(r'$\log \, \mathcal{L}$')
             g_fixedlogPxCco.setTitle(r'Log likelihood at $(\log P_{x}, C_{co}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cco_optim,'.2E'))
             minValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMax()[1]
@@ -661,17 +710,35 @@ class ECLM(object):
         maFctKernel_x = ot.PythonFunction(1,1,kernel_x)
 
         # Numerical integration interval
-        yMin_b = max(val_min*db, 1.0+dR*val_min)
-        yMax_b = min(val_max*db, 1.0+dR*val_max)
+        # base load 
+        if k == 0:
+            yMin_b = val_min*db
+            yMax_b = min(val_max*db, 1.0+dR*val_max)
+        elif k == self.n:
+            yMin_b = max(val_min*db, 1.0+dR*val_min)
+            yMax_b = val_max*db
+        else:
+            yMin_b = max(val_min*db, 1.0+dR*val_min)
+            yMax_b = min(val_max*db, 1.0+dR*val_max)
         myInterval_b = ot.Interval(yMin_b, yMax_b)
-        yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
-        yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
+        
+        # extreme load
+        if k == 0:
+            yMin_x = val_min*dx+y_xm
+            yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
+        elif k == self.n:
+            yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
+            yMax_x = val_max*dx+y_xm
+        else:
+            yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
+            yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
         myInterval_x = ot.Interval(yMin_x, yMax_x)
+        
         # base load part integration
         int_b = 0.0
         if yMin_b < yMax_b:
             int_b =  self.integrationAlgo.integrate(maFctKernel_b, myInterval_b)[0]
-            # extreme load part integration
+        # extreme load part integration
         int_x = 0.0
         if yMin_x < yMax_x:
             int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
@@ -720,7 +787,7 @@ class ECLM(object):
 
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
-        # PSG(1) = Pb + Px
+        # PSG(1|n) = Pb + Px
         val_b = math.sqrt(db*db+dR*dR)
         val_x = math.sqrt(dx*dx+dR*dR)
         Pb = pi_weight * ot.DistFunc.pNormal(-1.0/val_b)
