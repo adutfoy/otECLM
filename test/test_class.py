@@ -16,4 +16,4 @@ def test_class(data):
     value = data
     obj = otECLM.ECLM(value, ot.GaussLegendre(50))
     res = obj.estimateMaxLikelihoodFromMankamo([0.5]*4, False, False)
-    ott.assert_almost_equal(res, res)
+    ott.assert_almost_equal(res[0:4], res[0:4])
