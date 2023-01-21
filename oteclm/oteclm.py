@@ -350,6 +350,21 @@ class ECLM(object):
         return proposedPoint
 
 
+    def logVrais_Mankamo(self, X):
+        logPx, Cco, Cx = X
+        #print('logVrais_Mankamo : logPx, Cco, Cx = ', logPx, Cco, Cx)
+        # variables (pi, db, dx, dR, y_xm=1-dR)
+        pi_weight, db, dx, dR, y_xm = self.computeGeneralParamFromMankamo([self.Pt, math.exp(logPx), Cco, Cx])
+        self.setGeneralParameter([pi_weight, db, dx, dR, y_xm])
+        S = 0.0
+        for k in range(self.n+1):
+            valImpactvect = self.totalImpactVector[k]
+            if valImpactvect != 0:
+                val = self.computePEG(k)
+                log_PEG_k = math.log(val)
+                S += self.totalImpactVector[k] * log_PEG_k
+        return [S]
+
     def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
         r"""
         Estimates the maximum likelihood (general and Mankamo) parameters under the Mankamo assumption.
@@ -377,24 +392,6 @@ class ECLM(object):
         If the starting point is not valid, we computes a valid one witht the function *computeValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
         """
 
-
-        def logVrais_Mankamo(X):
-            logPx, Cco, Cx = X
-            #print('logVrais_Mankamo : logPx, Cco, Cx = ', logPx, Cco, Cx)
-            # variables (pi, db, dx, dR, y_xm=1-dR)
-            pi_weight, db, dx, dR, y_xm = self.computeGeneralParamFromMankamo([self.Pt, math.exp(logPx), Cco, Cx])
-            self.setGeneralParameter([pi_weight, db, dx, dR, y_xm])
-            #print('logVrais_Mankamo :[pi_weight, db, dx, dR, y_xm] = ', pi_weight, db, dx, dR, y_xm)
-            #print('logVrais_Mankamo : self.generalParameter = ', self.generalParameter)
-            S = 0.0
-            for k in range(self.n+1):
-                valImpactvect = self.totalImpactVector[k]
-                if valImpactvect != 0:
-                    val = self.computePEG(k)
-                    log_PEG_k = math.log(val)
-                    S += self.totalImpactVector[k] * log_PEG_k
-            return [S]
-
         def func_constraints(X):
             logPx, Cco, Cx = X
             terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
@@ -410,7 +407,7 @@ class ECLM(object):
             return [(1+epsC1)*terme_min-logPx, Cx - Cco - epsC2]
 
         maFct_cont = ot.PythonFunction(3, 2, func_constraints)
-        maFctLogVrais_Mankamo = ot.PythonFunction(3,1,logVrais_Mankamo)
+        maFctLogVrais_Mankamo = ot.PythonFunction(3,1, self.logVrais_Mankamo)
 
         ######################################
         # Maximisation de la vraisemblance
@@ -463,8 +460,8 @@ class ECLM(object):
         self.setMankamoParameter(mankamoParam)
         # General parameter = (pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
         # ==> mis à jour par setMankamoParameter
-        generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
-        #self.setGeneralParameter(generalParam)
+        generalParam = self.getGeneralParameter()
+
         
         ######################################
         # Graphes de la log vraisemblance avec point optimal
@@ -483,7 +480,7 @@ class ECLM(object):
             maFctLogVrais_Mankamo_fixedCcoCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [1,2], [Cco_optim, Cx_optim])
             maFctLogVrais_Mankamo_fixedlogPxCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,2], [logPx_optim, Cx_optim])
 
-            coef = 0.05
+            coef = 0.03
             logPx_inf = (1-coef)*logPx_optim
             logPx_sup = (1+coef)*logPx_optim
             Cco_inf = (1-coef)*Cco_optim
@@ -1507,7 +1504,7 @@ class ECLM(object):
             KS.setBoundaryCorrection(True)
             KS.setBoundingOption(ot.KernelSmoothing.BOTH)
             KS.setLowerBound(0.0)
-            KS.setUpperBound(1.0)
+            KS.setUpperBound(1.1)
             KS_dist = KS.build(samplePTS_k)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
