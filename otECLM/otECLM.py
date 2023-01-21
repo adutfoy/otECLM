@@ -94,23 +94,117 @@ class ECLM(object):
          y_{xm} & = & \\dfrac{\\mu_x-\\mu_b}{\\mu_R-\\mu_b}
         \\end{array}
 
-    Then, the  :math:`\\mbox{PEG}(k|n)` probabilities are written as:
+    Then the  :math:`\\mbox{PEG}(k|n)` probabilities are written as:
 
     .. math::
         :label: PEG_red
 
              \\mbox{PEG}(k|n)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k \\left[1-\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^{n-k} \\, dy
 
-    And, the  :math:`\\mbox{PEG}(k|n)` :
+    And the  :math:`\\mbox{PSG}(k|n)` probabilities are written as:
 
     .. math::
         :label: PSG_red
 
         \\mbox{PSG}(k)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k  \\, dy
 
-    The computation of the :math:`\\mbox{PEG}(k|n)`  and :math:`\\mbox{PSG}(k|n)` probabilities is done with a quadrature method. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
+    Note that for :math:`k=1`, the integral can be computed explicitly:
+
+    .. math::
+        :label: PSG1_red
+
+        \\begin{array}{lcl}
+           PSG(1) & = & \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+                 & = & \\pi \\left[1-\\varphi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
+        \\end{array}
+
+    The computation of the :math:`\\mbox{PEG}(k|n)`  and :math:`\\mbox{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
 
     The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`k` for :math:`0 \\leq k \\leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \\sum_{k=0}^n V_t^{n,N}[k]`.
+
+    **Estimation method proposed by Mankamo:**
+
+    Mankamo introduces a new set of parameters:  :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` defined from the general parameter :eq:`generalParam` as follows:
+
+    .. math::
+        :label: Param2
+
+        \\begin{array}{rcl}
+             P_t & = & \\mbox{PSG}(1) =   \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+             P_x &  = & \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
+             c_{co} & = & \\dfrac{d_b^2}{d_b^2+d_R^2}\\\\
+             c_x & = & \\dfrac{d_x^2}{d_x^2+d_R^2}
+        \\end{array}
+
+    Mankamo assumes that:
+
+    .. math::
+        :label: mankamoHyp
+
+        y_{xm} = 1-d_R
+
+
+    This assumption means that :math:`\\mu_R = \\mu_x+\\sigma_R`. Then equations :eq:`Param2` simplifies and we get:
+
+    .. math::
+        :label: Param2to1Mankamo
+
+        \\begin{array}{rcl}
+            (1-\\pi) & = & \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\\\
+            d_b & = & \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
+            d_R  & = & \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+            d_x  & = & d_R \\sqrt{\\dfrac{c_{x}}{1-c_{x}}}
+        \\end{array}
+
+    We call *Mankamo parameter* the set:
+
+    .. math::
+        :label: MankamoParam
+
+        (P_t, P_x, C_{co}, C_x)
+
+    The parameter :math:`P_t` is directly estimated from the total impact vector:
+
+    .. math::
+
+         \\hat{P}_t = \\sum_{i=1}^n\\dfrac{iV_t^{n,N}[i]}{nN}
+
+
+    The likelihood of the model is written with respect to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)` :
+
+    .. math::
+
+         \\log \\mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N}) = \\sum_{k=0}^n V_t^{n,N}[k] \\log \\mbox{PEG}(k|n)
+
+    Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model:
+
+    .. math::
+        :label: optimMankamo
+
+         (P_x, C_{co}, C_x)_{optim}  = \\arg \\max_{(P_x, C_{co}, C_x)} \\log \\mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N})
+
+    The optimization is done under the following constraints:
+
+    .. math::
+
+        \\begin{array}{l}
+             0 \\leq P_x  \\leq P_t \\\\
+             0 \\leq c_{co} \\leq c_{x} \\leq 1 \\\\
+             0 \\leq 1-\\pi = \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
+             0 \\leq d_b = \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+              0 \\leq  d_R   = \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
+        \\end{array}
+
+    Assuming that :math:`P_t \\leq 0.5`, we can write the constraints as:
+
+    .. math::
+
+        \\begin{array}{l}
+            0\\leq  P_t \\leq \\dfrac{1}{2}\\\\
+            0 \\leq P_x  \\leq \\min\\{P_t,  (P_t-\\dfrac{1}{2} ) \\left(
+            1-\\dfrac{1}{2\\varphi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\varphi\\left(- \\sqrt{1-c_{x}}\\right)  \\} \\\\
+            0 \\leq c_{co} \\leq c_{x} \\leq 1 
+        \\end{array}
     """
 
     def __init__(self, totalImpactVector, integrationAlgo):
@@ -134,12 +228,8 @@ class ECLM(object):
             Mankamo starting point for the optimization problem.
         visuLikelihood : Bool
             Produces the graph of the log-likelihood function at the optimal point.
-            By default, False.
         verbose : Bool
             Verbose level of the algorithm.
-
-            By default, False.
-
 
         Returns
         -------
@@ -148,93 +238,7 @@ class ECLM(object):
         finalLogLikValue : float
             The value of the log-likelihood function at the optimal point.
         graphList : list of :class:`~openturns.Graph`
-            The collection graphs of the log-likelihood function at the optimal point when one or two components are fixed.
-
-        Notes
-        -----
-        Mankamo introduces a new set of parameters:  :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` defined from the general parameter (:eq:`generalParam`) as follows:
-
-        .. math::
-            :label: Param2
-
-            \\begin{array}{rcl}
-                 P_t & = & \\mbox{PSG}(1) =   \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-                 P_x &  = & \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
-                 c_{co} & = & \\dfrac{d_b^2}{d_b^2+d_R^2}\\\\
-                 c_x & = & \\dfrac{d_x^2}{d_x^2+d_R^2}
-            \\end{array}
-
-        Mankamo assumes that:
-
-        .. math::
-            :label: mankamoHyp
-
-            y_{xm} = 1-d_R
-
-
-        This assumption means that :math:`\\mu_R = \\mu_x+\\sigma_R`. Then equations (:eq:`Param2`) simplifies and we get:
-
-        .. math::
-            :label: Param2to1Mankamo
-
-            \\begin{array}{rcl}
-                (1-\\pi) & = & \\dfrac{P_x}{\\varphi\\left(\\textcolor{red}{-} \\sqrt{1-c_{x}}\\right)}\\\\
-                d_b & = & \\dfrac{\\sqrt{c_{co}}}{\\textcolor{red}{-}\\varphi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
-                d_R  & = & \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
-                d_x  & = & d_R \\sqrt{\\dfrac{c_{x}}{1-c_{x}}}
-            \\end{array}
-
-        We call *Mankamo parameter* the set:
-
-        .. math::
-            :label: MankamoParam
-
-            (P_t, P_x, C_{co}, C_x)
-
-        The parameter :math:`P_t` is directly estimated from the total impact vector:
-
-        .. math::
-
-             \\hat{P}_t = \\sum_{i=1}^n\\dfrac{iV_t^{n,N}[i]}{nN}
-
-
-        The likelihood of the model is written with respect to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)` :
-
-        .. math::
-
-             \\log \\cL(\\vect{\\theta}|V_t^{n,N}) = \\sum_{k=0}^n V_t^{n,N}[k] \\log \\mbox{PEG}(k|n)
-
-        Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model:
-
-        .. math::
-            :label: optimMankamo
-
-             (P_x, C_{co}, C_x)_{optim}  = \\argmax_{(P_x, C_{co}, C_x)} \\log \\cL((P_x, C_{co}, C_x)|V_t^{n,N})
-
-        The optimization is done under the following constraints:
-
-        .. math::
-
-            \\begin{array}{l}
-                 0 \\leq P_x  \\leq P_t \\\\
-                 0 \\leq c_{co} \\leq 1 \\\\
-                 0 \\leq c_{x} \\leq 1  \\\\
-                 0 \\leq 1-\\pi = \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
-                 0 \\leq d_b = \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
-                  0 \\leq  d_R   = \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
-            \\end{array}
-
-        Assuming that $P_t \\leq 0.2$, we can write the constraints as:
-
-        .. math::
-
-            \\begin{array}{l}
-                0< P_t \\leq \\dfrac{1}{2}\\\\
-                0 < P_x  \\leq \\min\\{P_t,  (P_t-\\dfrac{1}{2} ) \\left(
-                1-\\dfrac{1}{2\\varphi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\varphi\\left(- \\sqrt{1-c_{x}}\\right)  \\} \\\\
-                0 < c_{co} < 1 \\\\
-                0 < c_{x} < 1
-            \\end{array}
+            The collection of graphs drawing the log-likelihood function at the optimal point when one or two components are fixed.
         """
 
 
@@ -511,16 +515,16 @@ class ECLM(object):
         Parameters
         ----------
         mankamoParam :  list of float
-            The  Mankamo parameter (:eq:`MankamoParam`).
+            The  Mankamo parameter :eq:`MankamoParam`.
 
         Returns
         -------
         generalParam : list of float
-            The general parameter (:eq:`generalParam`).
+            The general parameter :eq:`generalParam`.
 
         Notes
         -----
-        The general parameter (:eq:`generalParam`) is computed from the Mankamo parameter (:eq:`MankamoParam`) under the Mankamo assumption (:eq:`mankamoHyp`) where :math:`y_{xm} = 1-d_R`, using equations (:eq:`Param2to1Mankamo`).
+        The general parameter :eq:`generalParam` is computed from the Mankamo parameter :eq:`MankamoParam` under the Mankamo assumption :eq:`mankamoHyp` using equations :eq:`Param2to1Mankamo`.
         """
 
         Pt, Px, Cco, Cx = mankamoParam
@@ -550,7 +554,7 @@ class ECLM(object):
 
         Notes
         -----
-        The  :math:`\\mbox{PEG}(k|n)` probability is computed using (:eq:`PEG_red`).
+        The  :math:`\\mbox{PEG}(k|n)` probability is computed using :eq:`PEG_red`.
         """
 
         if self.generalParameter is None:
@@ -616,7 +620,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\\mbox{PEG}(k|n)` probabilities are computed using (:eq:`PEG_red`).
+        All the  :math:`\\mbox{PEG}(k|n)` probabilities are computed using :eq:`PEG_red`.
         """
 
         PEG_list = list()
@@ -636,15 +640,7 @@ class ECLM(object):
 
         Notes
         -----
-        The  :math:`\\mbox{PSG}(1|n)` probability is computed using:
-
-        .. math::
-            :label: PSG1_red
-
-            \\begin{array}{lcl}
-               PSG(1) & = & \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-                     & = & \\pi \\left[\\textcolor{red}{1-}\\varphi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[\\textcolor{red}{1-}\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
-            \\end{array}
+        The  :math:`\\mbox{PSG}(1|n)` probability is computed using :eq:`PSG1_red`.
         """
 
         if self.generalParameter is None:
@@ -678,7 +674,7 @@ class ECLM(object):
 
         Notes
         -----
-        The  :math:`\\mbox{PSG}(k|n)` probability is computed using (:eq:`PSG_red`) for :math:`k !=1` and using (:eq:`PSG1_red`) for :math:`k=1`.
+        The  :math:`\\mbox{PSG}(k|n)` probability is computed using :eq:`PSG_red` for :math:`k !=1` and using :eq:`PSG1_red` for :math:`k=1`.
         """
 
         if self.generalParameter is None:
@@ -744,7 +740,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\\mbox{PSG}(k|n)` probabilities are computed using (:eq:`PSG_red`) for :math:`k != 1` and (:eq:`PSG1_red`) for :math:`k = 1`.
+        All the  :math:`\\mbox{PSG}(k|n)` probabilities are computed using :eq:`PSG_red` for :math:`k != 1` and :eq:`PSG1_red` for :math:`k = 1`.
         """
 
         PSG_list = list()
@@ -769,7 +765,7 @@ class ECLM(object):
 
         Notes
         -----
-        The  :math:`\\mbox{PES}(k|n)` probability is computed using  (:eq:`PES_red`).
+        The  :math:`\\mbox{PES}(k|n)` probability is computed using  :eq:`PES_red`.
         """
 
         if self.generalParameter is None:
@@ -793,7 +789,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\\mbox{PES}(k|n)` probabilities are computed using (:eq:`PES_red`).
+        All the  :math:`\\mbox{PES}(k|n)` probabilities are computed using :eq:`PES_red`.
         """
 
         PES_list = list()
@@ -818,7 +814,7 @@ class ECLM(object):
 
         Notes
         -----
-        The  :math:`\\mbox{PTS}(k|n)` probability is computed using  (:eq:`PTS_red`)  where  the :math:`\\mbox{PES}(i|n)` probability is computed using (:eq:`PES_red`).
+        The  :math:`\\mbox{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\\mbox{PES}(i|n)` probability is computed using :eq:`PES_red`.
         """
 
 
@@ -840,7 +836,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using (:eq:`PS_red`).
+        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using :eq:`PS_red`.
         """
 
         PTS_list = list()
@@ -858,17 +854,17 @@ class ECLM(object):
         Nb : int
             The size of the sample generated.
         startingPoint : list of float,
-            Mankamo starting point (:eq:`MankamoParam`) for the optimization problem.
+            Mankamo starting point :eq:`MankamoParam` for the optimization problem.
         blockSize : int,
             The block size after which the sample is saved.
         fileNameRes: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption (:eq:`mankamoHyp`).
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption :eq:`mankamoHyp`.
 
         Notes
         -----
-        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\\dots, p_n^{emp}]` where :math:`p_k^{emp} = \\dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem (:eq:`optimMankamo`) is solved using the specified starting point.
+        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\\dots, p_n^{emp}]` where :math:`p_k^{emp} = \\dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
 
-        The function calls the script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
+        The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
@@ -911,7 +907,7 @@ class ECLM(object):
 "Nbootstrap = int(sys.argv[1])\n"\
 "# taille des blocs\n"\
 "blockSize = int(sys.argv[2])\n"\
-"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})\n"\
 "fileNameRes = str(sys.argv[3])\n"\
 "\n"\
 "print('boostrap param : ')\n"\
@@ -1011,9 +1007,9 @@ class ECLM(object):
 
         Notes
         -----
-        The ECLM probabilities are computed using the Mankamo assumption (:eq:`mankamoHyp`). They are returned according to the order :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))` using equantions (:eq:`PEG_red`), (:eq:`PSG_red`), (:eq:`PES_red`),(:eq:`PTS_red`), using the Mankamo assumption :math:`y_{xm} = 1-d_R`.
+        The ECLM probabilities are computed using the Mankamo assumption :eq:`mankamoHyp`. They are returned according to the order :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))` using equations :eq:`PEG_red`, :eq:`PSG_red`, :eq:`PES_red`, :eq:`PTS_red`, using the Mankamo assumption :eq:`mankamoHyp`.
 
-        The function calls the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
+        The function generates the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
@@ -1055,7 +1051,7 @@ class ECLM(object):
 "n = int(sys.argv[1])\n"\
 "# taille des blocs\n"\
 "blockSize = int(sys.argv[2])\n"\
-"# Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+"# Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})\n"\
 "fileNameInput = str(sys.argv[3])\n"\
 "# Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
 "fileNameRes = str(sys.argv[4])\n"\
@@ -1163,9 +1159,9 @@ class ECLM(object):
         Returns
         -------
         graphPairsMankamoParam : :class:`~openturns.Graph`
-            The Pairs graph of the Mankamo parameter  (:eq:`MankamoParam`).
+            The Pairs graph of the Mankamo parameter  :eq:`MankamoParam`.
         graphPairsGeneralParam : :class:`~openturns.Graph`
-            The Pairs graph of the general parameter (:eq:`generalParam`).
+            The Pairs graph of the general parameter :eq:`generalParam`.
         graphMarg_list : list of :class:`~openturns.Graph`
             The list of the marginal pdf of the Mankamoand general parameters.
         descParam: :class:`~openturns.Description`
@@ -1173,7 +1169,7 @@ class ECLM(object):
 
         Notes
         -----
-        i        The  marginal distributions are first estimated for the Mankamo parameter (:eq:`MankamoParam`) then for the general parameter (:eq:`generalParam`).
+        i        The  marginal distributions are first estimated for the Mankamo parameter :eq:`MankamoParam` then for the general parameter :eq:`generalParam`.
 
         Each distribution is approximated with a Histogram and a normal kernel smoothing.
         """
@@ -1610,7 +1606,7 @@ class ECLM(object):
 
             k_{max}(p) = \\max \\{ k |  \\mbox{PTS}(k|n) > p \\}
 
-        The probability :math:`\\mbox{PTS}(k|n)` is computed using (:eq:`PTS_red`).
+        The probability :math:`\\mbox{PTS}(k|n)` is computed using :eq:`PTS_red`.
         """
 
         k=0
@@ -1636,7 +1632,7 @@ class ECLM(object):
             The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
 
         fileNameRes: string
-            The csv file that stores the sample of  :math:`k_{max}` defined by (:eq:`kMaxDef`).
+            The csv file that stores the sample of  :math:`k_{max}` defined by :eq:`kMaxDef`.
 
         Returns
         -------
@@ -1645,7 +1641,7 @@ class ECLM(object):
 
         Notes
         -----
-        The function calls the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
+        The function generates the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
@@ -1821,7 +1817,7 @@ class ECLM(object):
         Parameters
         ----------
         mankamoParameter : list of float
-            The Mankamo parameter (:eq:`MankamoParam`).
+            The Mankamo parameter :eq:`MankamoParam`.
         """
 
         self.MankamoParameter = mankamoParameter
@@ -1834,7 +1830,7 @@ class ECLM(object):
         Parameters
         ----------
         generalParameter : list of float
-            The general parameter  (:eq:`generalParam`).
+            The general parameter  :eq:`generalParam`.
         """
 
         self.generalParameter = generalParameter
@@ -1886,7 +1882,7 @@ class ECLM(object):
         Returns
         -------
         mankamoParameter : :class:`~openturns.Point`
-            The Mankamo parameter (:eq:`MankamoParam`).
+            The Mankamo parameter :eq:`MankamoParam`.
         """
 
         return self.MankamoParameter
@@ -1899,7 +1895,7 @@ class ECLM(object):
         Returns
         -------
         generalParameter : list of foat
-            The general parameter defined in (:eq:`generalParam`).
+            The general parameter defined in :eq:`generalParam`.
         """
 
         return self.generalParameter
