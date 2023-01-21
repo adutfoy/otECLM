@@ -907,7 +907,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using :eq:`PS_red`.
+        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using :eq:`PSG_red`.
         """
 
         PTS_list = list()
