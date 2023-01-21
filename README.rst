@@ -1,20 +1,7 @@
 otECLM module
 =============
 
-ottemplate is a (non official) module for OpenTURNS. It serves as a template or example to build python modules designed to interact within the openturns platform.
-
-
-Template update
-================
-One should update the template to its needs. For the moment there is no `customize` command for that purpose but this will be available soon.
-User can perform manually some changes:
-
-- Rename `ottemplate` folder into the name of the module
-- Update `setup.py` (replace `ottemplate` with the new module)
-- Rename also python files in the subfolder
-- Replace `ottemplate` in `doc/conf.py` by the name of the (new) module. Also the `theme` folder contains a `layout` that should be updated.
-  Same operations are to be done in all doc (`user_manual`, `index`, `developer_guide`, `examples`)
-- Finally perform also changes in `test` and `continuous-integration` folders
+ottemplate is an OpenTURNS module. It allows the treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load Model (ECLM) .
 
 
 Build from source
@@ -24,7 +11,7 @@ Get source:
 
 .. code-block:: shell
 
-    $ git clone https://www.github.com/sofianehaddad/ottemplatepython.git
+    $ git clone https://www.github.com/sofianehaddad/otECLMpython.git
 
 
 The install procedure is performed as follows:
