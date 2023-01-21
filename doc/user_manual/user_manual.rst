@@ -7,4 +7,4 @@ API Reference
     :toctree: _generated/
     :template: class.rst_t
   
-    MyClass
+    ECLM
