@@ -65,7 +65,7 @@ startingPoint
 
 # %%
 visuLikelihood = True
-mankamoParam, generalParam, finalLogLikValue, graphesCol = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, visuLikelihood, verbose=False)
+mankamoParam, generalParam, finalLogLikValue, graphesCol = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, visuLikelihood)
 print('Mankamo parameter : ', mankamoParam)
 print('general parameter : ', generalParam)
 print('finalLogLikValue : ', finalLogLikValue)
