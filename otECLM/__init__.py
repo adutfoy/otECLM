@@ -8,11 +8,6 @@
 
 """
 
-import sys
-if sys.platform.startswith('win'):
-    # this ensures OT dll is loaded
-    import openturns
-
 from .otECLM import ECLM
 
 __version__ = '0.1'
