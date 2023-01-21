@@ -99,14 +99,14 @@ class ECLM(object):
     .. math::
         :label: PEG_red
 
-             \\mbox{PEG}(k|n)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k \\left[1-\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^{n-k} \\, dy
+             \\mbox{PEG}(k|n)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k \\left[1-\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^{n-k} \\, dy
 
     And the  :math:`\\mbox{PSG}(k|n)` probabilities are written as:
 
     .. math::
         :label: PSG_red
 
-        \\mbox{PSG}(k)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k  \\, dy
+        \\mbox{PSG}(k)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k  \\, dy
 
     Note that for :math:`k=1`, the integral can be computed explicitly:
 
@@ -114,8 +114,8 @@ class ECLM(object):
         :label: PSG1_red
 
         \\begin{array}{lcl}
-           PSG(1) & = & \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-                 & = & \\pi \\left[1-\\varphi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
+           PSG(1) & = & \\displaystyle \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+                 & = & \\pi \\left[1-\\Phi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[1-\\Phi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
         \\end{array}
 
     The computation of the :math:`\\mbox{PEG}(k|n)`  and :math:`\\mbox{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
@@ -130,8 +130,8 @@ class ECLM(object):
         :label: Param2
 
         \\begin{array}{rcl}
-             P_t & = & \\mbox{PSG}(1) =   \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-             P_x &  = & \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
+             P_t & = & \\mbox{PSG}(1) = \\displaystyle  \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+             P_x &  = &\\displaystyle  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\Phi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
              c_{co} & = & \\dfrac{d_b^2}{d_b^2+d_R^2}\\\\
              c_x & = & \\dfrac{d_x^2}{d_x^2+d_R^2}
         \\end{array}
@@ -150,9 +150,9 @@ class ECLM(object):
         :label: Param2to1Mankamo
 
         \\begin{array}{rcl}
-            (1-\\pi) & = & \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\\\
-            d_b & = & \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
-            d_R  & = & \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+            (1-\\pi) & = & -\\dfrac{P_x}{\\Phi\\left(\\sqrt{1-c_{x}}\\right)}\\\\
+            d_b & = & -\\dfrac{\\sqrt{c_{co}}}{\\Phi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
+            d_R  & = & -\\dfrac{\\sqrt{1-c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
             d_x  & = & d_R \\sqrt{\\dfrac{c_{x}}{1-c_{x}}}
         \\end{array}
 
@@ -190,19 +190,19 @@ class ECLM(object):
         \\begin{array}{l}
              0 \\leq P_x  \\leq P_t \\\\
              0 \\leq c_{co} \\leq c_{x} \\leq 1 \\\\
-             0 \\leq 1-\\pi = \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
-             0 \\leq d_b = \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
-              0 \\leq  d_R   = \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
+             0 \\leq 1-\\pi = \\dfrac{P_x}{\\Phi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
+             0 \\leq d_b = -\\dfrac{\\sqrt{c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+              0 \\leq  d_R   = -\\dfrac{\\sqrt{1-c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
         \\end{array}
 
-    Assuming that :math:`P_t \\leq 0.5`, we can write the constraints as:
+    Assuming that :math:`P_t \\leq \frac{1}{2}`, we can write the constraints as:
 
     .. math::
 
         \\begin{array}{l}
             0\\leq  P_t \\leq \\dfrac{1}{2}\\\\
-            0 \\leq P_x  \\leq \\min\\{P_t,  (P_t-\\dfrac{1}{2} ) \\left(
-            1-\\dfrac{1}{2\\varphi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\varphi\\left(- \\sqrt{1-c_{x}}\\right)  \\} \\\\
+            0 \\leq P_x  \\leq \\min \\left \\{P_t, \\left (P_t-\\dfrac{1}{2}\\right ) \\left(
+            1-\\dfrac{1}{2\\Phi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\Phi\\left(- \\sqrt{1-c_{x}}\\right) \\right \\} \\\\
             0 \\leq c_{co} \\leq c_{x} \\leq 1 
         \\end{array}
     """
