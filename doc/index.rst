@@ -1,5 +1,5 @@
 otECLM documentation
-========================
+====================
 
 User documentation
 ------------------
