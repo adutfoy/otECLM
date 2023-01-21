@@ -54,7 +54,7 @@ try:
     imgmath_use_preview = True
     if subprocess.call('dvisvgm -V', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
         imgmath_image_format = 'svg'
-   imgmath_embed = True
+    imgmath_embed = True
 except ImportError:
     extensions.append('sphinx.ext.pngmath')
     # The next option is used for smart-alignment of math images on the text.
