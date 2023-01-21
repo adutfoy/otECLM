@@ -25,7 +25,7 @@ jobs:
           cp -r doc/build/html/* /tmp/io/otECLM/main
           cd /tmp/io
           touch .nojekyll
-          git config user.email "support@gh.com"
+          git config user.email "anne.dutfoy@m4x.org"
           git config user.name "GitHub Actions"
           git add -A .
           if test `git diff HEAD | wc -c` -eq 0; then exit 0; fi
