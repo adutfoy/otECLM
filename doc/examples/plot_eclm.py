@@ -6,9 +6,9 @@ Example : Extended Common Load Modelling
 # | Import the required modules
 
 # %%
-get_ipython().run_line_magic('matplotlib', 'inline')
 import openturns as ot
 from openturns.viewer import View
+import oteclm
 
 # %%
 # Description
@@ -36,7 +36,7 @@ vectImpactTotal[7] = 0
 # Create the ECLM class. We will use the Gauss Legendre quadrature algorithm to compute all the integrals of the ECLM model. The use of 50 points is sufficicient to reach a good precision.
 
 # %%
-myECLM = otECLM.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
+myECLM = oteclm.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
 
 # %%
 # Estimate the optimal parameter
