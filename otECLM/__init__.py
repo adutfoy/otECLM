@@ -13,10 +13,7 @@ if sys.platform.startswith('win'):
     # this ensures OT dll is loaded
     import openturns
 
-from otECLM import ECLM
-import .script_bootstrap_ECLMProbabilities.py 
-import .script_bootstrap_KMax.py
-import .script_bootstrap_ParamFromMankamo.py
+from .otECLM import ECLM
 
 __version__ = '0.1'
 

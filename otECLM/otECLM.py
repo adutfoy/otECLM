@@ -2,106 +2,118 @@ import numpy as np
 import openturns as ot
 import math as math
 
-
 class ECLM(object):
     """
-    Treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load method (ECLM).
-    """ 
-    
-    def __init__(self, totalImpactVector, integrationAlgo = ot.GaussLegendre([50])):
-        """
-        Creates a new ECLM class.
-        
-        Parameters
-        ----------
-        totalImpactVector : :class:`~openturns.Indices`
-            The total impact vector of the common cause failure (CCF) group.
-        integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
-            The integration algorithm used to compute the integrals.
+    Provides a class for the Extended Common Load Model (ECLM).
 
-            By defaut, :class:`~openturns.GaussLegendre` parameterized by 50 points.
-    
-        Notes
-        -----
-        We consider a common cause failure (CCF) group of :math:`n` components supposed to be independent and identical. 
+    Parameters
+    ----------
+    totalImpactVector : :class:`~openturns.Indices`
+        The total impact vector of the common cause failure (CCF) group.
+    integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
+        The integration algorithm used to compute the integrals.
 
-        We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \dots, R_n)` are independant and identically distributed according to :math:`R`.
- 
-        We assume that the load :math:`S` is modelled as a mixture of two normal distributions:
+    Notes
+    -----
+    The Extended Common Load Model (ECLM) is detailed in *Extended Common Load Model: a tool for dependent failure modelling in highly redundant structures*, T. Mankamo, Report number: 2017:11, ISSN: 2000-0456, available at www.stralsakerhetsmyndigheten.se, 2017.
 
-            - the base part  with mean and variance :math:`(\mu_b, \sigma_b^2)` 
-            - the extreme load parts  with mean and variance :math:`(\mu_x, \sigma_x^2)` 
-            - the respective weights :math:`(\pi, 1-\pi)`.
+    We consider a common cause failure (CCF) group of :math:`n` components supposed to be independent and identical.
 
-        Then the density of :math:`S` is written as:
+    We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \\dots, R_n)` are independant and identically distributed according to :math:`R`.
 
-        ..math::
-        
-            f_S(s) = \pi \varphi \left(\dfrac{s-\mu_b}{\sigma_b}\right) + (1-\pi) \varphi \left(\dfrac{s-\mu_x}{\sigma_x}\right)\quad \forall s \in \Rset
+    We assume that the load :math:`S` is modelled as a mixture of two normal distributions:
 
-        We assume that the resistance :math:`R` is modelled as normal distribution with  mean and variance :math:`(\mu_R, \sigma_R^2)`. We denote by :math:`p_R` and :math:`F_R` its density and the cumulative density function.
+        - the base part  with mean and variance :math:`(\\mu_b, \\sigma_b^2)`
+        - the extreme load parts  with mean and variance :math:`(\\mu_x, \\sigma_x^2)`
+        - the respective weights :math:`(\\pi, 1-\\pi)`.
 
-        We define the ECLM probabilities, for :math:`0 \leq k \leq n`: 
+    Then the density of :math:`S` is written as:
 
-            - :math:`\mbox{PSG}(k)`: probability that  specific set of :math:`k` components fail.
-            - :math:`\mbox{PEG}(k|n)`: probability that a specific set of :math:`k` components fail in a CCF group of size :math:`n` while the other :math:`(n-k)` survive.
-            - :math:`\mbox{PES}(k|n)`: probability that some set of :math:`k` components fail while the other :math:`(n-k)` survive.
-            - :math:`\mbox{PTS}(k|n)`: probability that  at least some specific set of :math:`k` components fail in a CCF group of size :math:`n`.
+    .. math::
 
-        Then the  :math:` \mbox{PEG}(k|n)`  probabilities are defined as:
+        f_S(s) = \\pi \\varphi \\left(\\dfrac{s-\\mu_b}{\\sigma_b}\\right) + (1-\\pi) \\varphi \\left(\\dfrac{s-\\mu_x}{\\sigma_x}\\right)\\quad \\forall s \\in \\mathbb{R}
 
-        ..math::
-    
-            \begin{array}{rcl}
-              \mbox{PEG}(k|n) & = & \Prob{S>R_1, \dots, S>R_k, S<R_{k+1}, \dots, S<R_n} \\
-                              & = &  \int_{s\in  \Rset} f_S(s) \left[F_R(s)\right]^k \left[1-F_R(s)\right]^{n-k} \, ds
-            \end{array}
-        
-        and the  :math:` \mbox{PSG}(k|n)` probabilities are defined as:
-        
-        ..math::
-    
-            \begin{array}{rcl}
-              \mbox{PSG}(k) & = & \Prob{S>R_1, \dots, S>R_k}\\
-                            & = &  \int_{s\in  \Rset} f_S(s) \left[F_R(s)\right]^k\, ds
-            \end{array}
-    
-        We get the :math:`\mbox{PES}(k|n)` probabilities and  :math:`\mbox{PTS}(k|n)` with the relations: 
+    We assume that the resistance :math:`R` is modelled as a normal distribution with  mean and variance :math:`(\\mu_R, \\sigma_R^2)`. We denote by :math:`p_R` and :math:`F_R` its density and its cumulative density function.
 
-        ..math::
-    
-            \begin{array}{rcl}
-                \mbox{PES}(k|n) & = & C_n^k \, \mbox{PEG}(k|n)\\
-                \mbox{PTS}(k|n) & = & \sum_{i=k}^n  \mbox{PES}(i|n)
-            \end{array}
+    We define the ECLM probabilities of a CCF group of size :math:`n`, for :math:`0 \\leq k \\leq n` are the following:
 
-        We use the following set of parameters called General Parameter: :math:`(\pi, d_b, d_x, d_R, y_{xm})` defined by:
+        - :math:`\\mbox{PSG}(k)`: probability that a  specific set of :math:`k` components fail.
+        - :math:`\\mbox{PEG}(k|n)`: probability that a specific set of :math:`k` components fail  while the other :math:`(n-k)` survive.
+        - :math:`\\mbox{PES}(k|n)`: probability that some set of :math:`k` components fail while the other :math:`(n-k)` survive.
+        - :math:`\\mbox{PTS}(k|n)`: probability that  at least some specific set of :math:`k` components fail.
 
-        ..math::
-            :label:`generalParam`
 
-            \begin{array}{rcl}
-             d_{b} & = & \dfrac{\sigma_b}{\mu_R-\mu_b}\\
-             d_{x} & = & \dfrac{\sigma_x}{\mu_R-\mu_b}\\
-             d_{R} & = & \dfrac{\sigma_R}{\mu_R-\mu_b}\\
-             y_{xm} & = & \dfrac{\mu_x-\mu_b}{\mu_R-\mu_b}
-            \end{array}
+    Then the  :math:`\\mbox{PEG}(k|n)`  probabilities are defined as:
 
-        Then, the  :math:` \mbox{PEG}(k|n)` and :math:` \mbox{PSG}(k|n)` probabilities are written as:
+    .. math::
 
-        ..math::
-            :label:`PEG_red`
+        \\begin{array}{rcl}
+          \\mbox{PEG}(k|n) & = & \\mathbb{P}\\left[S>R_1, \\dots, S>R_k, S<R_{k+1}, \\dots, S<R_n\\right] \\\\
+                          & = &  \\int_{s\\in  \\mathbb{R}} f_S(s) \\left[F_R(s)\\right]^k \\left[1-F_R(s)\\right]^{n-k} \\, ds
+        \\end{array}
 
-            \begin{array}{rcl}
-                 \mbox{PEG}(k|n) & = &   \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k \left[1-\Phi\left(\dfrac{y-1}{d_R}\right)\right]^{n-k} \, dy \\
-                 \mbox{PSG}(k) & = &   \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
-            \end{array}
+    and the  :math:`\\mbox{PSG}(k|n)` probabilities are defined as:
 
-         The computation of the :math:`PEG(k|n)`  and :math:` \mbox{PSG}(k|n)` probabilities is done with a quadrature method. By default, we use the Gauss-Legendre quadrature method parameterized by 50 points.
+    .. math::
 
-        The data is the  impact vector :math:`V_t^{n,N}` of the CCF group the component :math:`k for :math:{0 \leq k \leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \sum_{k=0}^n V_t^{n,N}[k]`.
-        """
-        
+        \\begin{array}{rcl}
+          \\mbox{PSG}(k) & = & \\mathbb{P}\\left[S>R_1, \\dots, S>R_k\\right]\\\\
+                        & = &  \\int_{s\\in  \\mathbb{R}} f_S(s) \\left[F_R(s)\\right]^k\\, ds
+        \\end{array}
+
+    We get the :math:`\\mbox{PES}(k|n)` probabilities and  :math:`\\mbox{PTS}(k|n)` with the relations:
+
+        .. math::
+            :label: PES_red
+
+            \\mbox{PES}(k|n) = C_n^k \\, \\mbox{PEG}(k|n)
+
+    and
+
+        .. math::
+            :label: PTS_red
+
+             \\mbox{PTS}(k|n) = \\sum_{i=k}^n  \\mbox{PES}(i|n)
+
+
+    We use the following set of parameters called *general parameter* :
+
+    .. math::
+        :label: generalParam
+
+        (\\pi, d_b, d_x, d_R, y_{xm})
+
+    defined by:
+
+    .. math::
+
+        \\begin{array}{rcl}
+         d_{b} & = & \\dfrac{\\sigma_b}{\\mu_R-\\mu_b}\\\\
+         d_{x} & = & \\dfrac{\\sigma_x}{\\mu_R-\\mu_b}\\\\
+         d_{R} & = & \\dfrac{\\sigma_R}{\\mu_R-\\mu_b}\\\\
+         y_{xm} & = & \\dfrac{\\mu_x-\\mu_b}{\\mu_R-\\mu_b}
+        \\end{array}
+
+    Then, the  :math:`\\mbox{PEG}(k|n)` probabilities are written as:
+
+    .. math::
+        :label: PEG_red
+
+             \\mbox{PEG}(k|n)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k \\left[1-\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^{n-k} \\, dy
+
+    And, the  :math:`\\mbox{PEG}(k|n)` :
+
+    .. math::
+        :label: PSG_red
+
+        \\mbox{PSG}(k)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k  \\, dy
+
+    The computation of the :math:`\\mbox{PEG}(k|n)`  and :math:`\\mbox{PSG}(k|n)` probabilities is done with a quadrature method. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
+
+    The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`k` for :math:`0 \\leq k \\leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \\sum_{k=0}^n V_t^{n,N}[k]`.
+    """
+
+    def __init__(self, totalImpactVector, integrationAlgo):
         # set attribute
         self.totalImpactVector = totalImpactVector
         self.integrationAlgo = integrationAlgo
@@ -111,241 +123,120 @@ class ECLM(object):
         # GeneralParam: (pi, d_b, d_x, d_R, y_{xm})
         self.generalParameter = None
 
-    def setTotalImpactVector(self, totalImpactVector):
+
+    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
         """
-        Accessor to the total impact vector.
-
-        Parameters
-        ----------
-        totalImpactVector : :class:`~openturns.Indices`
-            The total impact vector of the common cause failure (CCF) group.
-        """
-
-        self.totalImpactVector = totalImpactVector
-
-        
-    def setIntegrationAlgo(self, integrationAlgo):
-        """
-        Accessor to the integration algorithm.
-
-        Parameters
-        ----------
-        integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
-            The intergration algorithm used to compute the integrals.
-        """
-
-        self.integrationAlgo = integrationAlgo
-
-        
-    def setMankamoParameter(self, mankamoParameter):
-        """
-        Accessor to the Mankamo Parameter :math:`(P_t, P_x, C_{co}, C_x)`.
-
-        Parameters
-        ----------
-        mankamoParameter : list of float
-            The Mankamo parameter  :math:`(P_t, P_x, C_{co}, C_x)`.
-        """
-
-        self.MankamoParameter = mankamoParameter
-
-        
-    def setGeneralParameter(self, generalParameter):
-        """
-        Accessor to the general Parameter :math:`(pi, d_b, d_x, d_R, y_{xm})`.
-
-        Parameters
-        ----------
-        generalParameter : list of float
-            The general parameter  :math:`(pi, d_b, d_x, d_R, y_{xm})`
-        """
-
-        self.generalParameter = generalParameter
-                
-
-    def setN(self, n):
-        """
-        Accessor to the size of the CCF group :math:`n`.
-
-        Parameters
-        ----------
-        n : int
-            The size of the CF group.
-        """
-
-        self.n = n
-
-        
-    def getTotalImpactVector(self):
-        """
-        Accessor to the total impact vector.
-
-        Returns
-        -------
-        totalImpactVector : :class:`~openturns.Indices`
-            The total impact vector of the common cause failure (CCF) group.
-        """
-
-        return self.totalImpactVector
-
-        
-    def getIntegrationAlgorithm(self):
-        """
-        Accessor to the integration algorithm.
-
-        Returns
-        -------
-        integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
-            The intergration algorithm used to compute the integrals.
-        """
-
-        return self.integrationAlgo
-
-        
-    def getMankamoParameter(self):
-        """
-        Accessor to the Mankamo Parameter :math:`(P_t, P_x, C_{co}, C_x)`.
-
-        Returns
-        -------
-        mankamoParameter : :class:`~openturns.Point`
-            The Mankamo parameter.
-        """
-
-        return self.MankamoParameter
-
-        
-    def getGeneralParameter(self):
-        """
-        Accessor to the General Parameter :math:`(pi, d_b, d_x, d_R, y_{xm})`.
-
-        Returns
-        -------
-        generalParameter : list of foat
-            The General parameter defined in :eq:`generalParam`.
-        """
-
-        return self.generalParameter
-
-    def getN(self):
-        """
-        Accessor to the size of the CCF group :math:`n`.
-
-        Returns
-        -------
-        n : int
-            The size of the CF group.
-        """
-
-        return self.n
-        
-    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood=False, verbose=False):
-        """
-        Estimates the maximum likelihood General and Mankamo parameters under the Mankamo assumption.
+        Estimates the maximum likelihood (general and Mankamo) parameters under the Mankamo assumption.
 
         Parameters
         ----------
         startingPoint : :class:`~openturns.Point`
-            Start point :math:`(P_t, P_x, C_{co}, C_x)` for the optimization problem.
+            Mankamo starting point for the optimization problem.
         visuLikelihood : Bool
-            Produce the graph of the log-likelihood function at the optimal point.
+            Produces the graph of the log-likelihood function at the optimal point.
             By default, False.
         verbose : Bool
             Verbose level of the algorithm.
 
             By default, False.
-            
+
 
         Returns
         -------
         paramList : :class:`~openturns.Point`
-            The optimal point :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
+            The optimal point :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
         finalLogLikValue : float
             The value of the log-likelihood function at the optimal point.
-        graphList : list  of :class:`~openturns.Graph`
-            The collection of g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx of the log-likelihood function at the optimal point when one or two components are fixed.
+        graphList : list of :class:`~openturns.Graph`
+            The collection graphs of the log-likelihood function at the optimal point when one or two components are fixed.
 
         Notes
         -----
-         Mankamo introduces a new set of parameters:  :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` and defined from the general parameters :math:`(\pi, d_b, d_x, d_R, y_{xm})` as follows:
+        Mankamo introduces a new set of parameters:  :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` defined from the general parameter (:eq:`generalParam`) as follows:
 
-        ..math::
+        .. math::
             :label: Param2
 
-            \begin{array}{rcl}
-                 P_t & = & \mbox{PSG}(1) =   \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
-                 P_x &  = & \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy = (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]\\
-                 c_{co} & = & \dfrac{d_b^2}{d_b^2+d_R^2}\\
-                 c_x & = & \dfrac{d_x^2}{d_x^2+d_R^2}
-            \end{array}
-        
+            \\begin{array}{rcl}
+                 P_t & = & \\mbox{PSG}(1) =   \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+                 P_x &  = & \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
+                 c_{co} & = & \\dfrac{d_b^2}{d_b^2+d_R^2}\\\\
+                 c_x & = & \\dfrac{d_x^2}{d_x^2+d_R^2}
+            \\end{array}
+
         Mankamo assumes that:
 
-        ..math::
+        .. math::
             :label: mankamoHyp
 
             y_{xm} = 1-d_R
 
-        
-        This assumption means that :math:`\mu_R = \mu_x+\sigma_R`. Then equations (:eq:`Param2`) simplify and we get:
 
-        ..math::
-            :label: Parma2to1Mankamo
+        This assumption means that :math:`\\mu_R = \\mu_x+\\sigma_R`. Then equations (:eq:`Param2`) simplifies and we get:
 
-            \begin{array}{rcl}
-                (1-\pi) & = & \dfrac{P_x}{\Phi\left(\textcolor{red}{-} \sqrt{1-c_{x}}\right)}\\
-                d_b & = & \dfrac{\sqrt{c_{co}}}{\textcolor{red}{-}\Phi^{-1}\left(\dfrac{P_t-P_x}{\pi} \right)}\\
-                d_R  & = & \dfrac{\sqrt{1-c_{co}}}{-\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} \\
-                d_x  & = & d_R \sqrt{\dfrac{c_{x}}{1-c_{x}}}
-            \end{array}
+        .. math::
+            :label: Param2to1Mankamo
 
-        We call  :math:`(P_t, P_x, C_{co}, C_x)` the Mankamo parameter.
+            \\begin{array}{rcl}
+                (1-\\pi) & = & \\dfrac{P_x}{\\varphi\\left(\\textcolor{red}{-} \\sqrt{1-c_{x}}\\right)}\\\\
+                d_b & = & \\dfrac{\\sqrt{c_{co}}}{\\textcolor{red}{-}\\varphi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
+                d_R  & = & \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+                d_x  & = & d_R \\sqrt{\\dfrac{c_{x}}{1-c_{x}}}
+            \\end{array}
 
-        The likelihood of the model is written as according to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)`
+        We call *Mankamo parameter* the set:
 
-        ..math::
+        .. math::
+            :label: MankamoParam
 
-             \log \cL(\vect{\theta}|V_t^{n,N}) = \sum_{k=0}^n V_t^{n,N}[k] \log \mbox{PEG}(k|n)
+            (P_t, P_x, C_{co}, C_x)
 
-        Then the optimal parameter maximises the log-likelihood of the model:        
+        The parameter :math:`P_t` is directly estimated from the total impact vector:
 
-        ..math::
-            :label:`optimMankamo`  
+        .. math::
 
-             (P_x, C_{co}, C_x)_{optim}  = \argmax_{(P_x, C_{co}, C_x)} \log \cL((P_x, C_{co}, C_x)|V_t^{n,N})
+             \\hat{P}_t = \\sum_{i=1}^n\\dfrac{iV_t^{n,N}[i]}{nN}
 
-        The optimization is done under the following constraints:       
 
-        ..math::
+        The likelihood of the model is written with respect to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)` :
 
-            \begin{array}{l}
-                 0 \leq P_x  \leq P_t \\
-                 0 \leq c_{co} \leq 1 \\
-                 0 \leq c_{x} \leq 1  \\
-                 0 \leq 1-\pi = \dfrac{P_x}{\Phi\left(- \sqrt{1-c_{x}}\right)}\leq 1 \\
-                 0 \leq d_b = \dfrac{\sqrt{c_{co}}}{-\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} \\
-                  0 \leq  d_R   = \dfrac{\sqrt{1-c_{co}}}{-\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} 
-            \end{array}
+        .. math::
 
-        Assuming that $P_t \leq 0.2$, we can write the constraints as:
+             \\log \\cL(\\vect{\\theta}|V_t^{n,N}) = \\sum_{k=0}^n V_t^{n,N}[k] \\log \\mbox{PEG}(k|n)
 
-        ..math::
+        Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model:
 
-            \begin{array}{l}
-                0< P_t \leq \dfrac{1}{2}\\
-                0 < P_x  \leq \min\{P_t,  (P_t-\dfrac{1}{2} ) \left(
-                1-\dfrac{1}{2\Phi\left(-\sqrt{1-c_{x}}\right)}\right)^{-1},  \Phi\left(- \sqrt{1-c_{x}}\right)  \} \\
-                0 < c_{co} < 1 \\
-                0 < c_{x} < 1  
-            \end{array}         
+        .. math::
+            :label: optimMankamo
 
-        The parameter :math:`P_t` is directly estimated form the total impact vector: 
+             (P_x, C_{co}, C_x)_{optim}  = \\argmax_{(P_x, C_{co}, C_x)} \\log \\cL((P_x, C_{co}, C_x)|V_t^{n,N})
 
-        ..math::
+        The optimization is done under the following constraints:
 
-             \hat{P}_t = \sum_{i=1}^n\dfrac{iV_t^{n,N}[i]}{nN}
+        .. math::
 
+            \\begin{array}{l}
+                 0 \\leq P_x  \\leq P_t \\\\
+                 0 \\leq c_{co} \\leq 1 \\\\
+                 0 \\leq c_{x} \\leq 1  \\\\
+                 0 \\leq 1-\\pi = \\dfrac{P_x}{\\varphi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
+                 0 \\leq d_b = \\dfrac{\\sqrt{c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
+                  0 \\leq  d_R   = \\dfrac{\\sqrt{1-c_{co}}}{-\\varphi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
+            \\end{array}
+
+        Assuming that $P_t \\leq 0.2$, we can write the constraints as:
+
+        .. math::
+
+            \\begin{array}{l}
+                0< P_t \\leq \\dfrac{1}{2}\\\\
+                0 < P_x  \\leq \\min\\{P_t,  (P_t-\\dfrac{1}{2} ) \\left(
+                1-\\dfrac{1}{2\\varphi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\varphi\\left(- \\sqrt{1-c_{x}}\\right)  \\} \\\\
+                0 < c_{co} < 1 \\\\
+                0 < c_{x} < 1
+            \\end{array}
         """
+
 
         # Nombre de sollicitations
         N = sum(self.totalImpactVector)
@@ -380,14 +271,15 @@ class ECLM(object):
             terme2 = (Pt-0.5)/(1-1/(2*terme1))
             terme_min = math.log(min(terme1, terme2))
 
-            # X respects the constraints if 
-            # logPx < terme_min <==> terme_min -logPx > 0
-            # we impose that terme_min -logPx >= eps|terme_min| > 0 <==> terme_min - eps|terme_min|-logPx>=0
-            # <==> (1+eps)*terme_min-logPx >= 0
+            # X respects the constraints if
+            # Constraint 1 :  logPx < terme_min <==> terme_min -logPx > 0
+            # we impose that terme_min -logPx >= epsC1|terme_min| > 0 <==> terme_min - epsC1|terme_min|-logPx>=0
+            # <==> (1+epsC1)*terme_min-logPx >= 0
+            # Constraint 2 : Cx - Cco - epsC2 >0
             # return un Point
-            return [(1+eps)*terme_min-logPx]
+            return [(1+epsC1)*terme_min-logPx, Cx - Cco - epsC2]
 
-        maFct_cont = ot.PythonFunction(3, 1, func_constraints)
+        maFct_cont = ot.PythonFunction(3, 2, func_constraints)
         maFctLogVrais_Mankamo = ot.PythonFunction(3,1,logVrais_Mankamo)
 
 
@@ -397,17 +289,19 @@ class ECLM(object):
         ######################################
         # Maximisation de la vraisemblance
 
-        eps = 1e-9
+        epsC1 = 1e-9
+        epsC2 = 1e-9
         optimPb = ot.OptimizationProblem(maFctLogVrais_Mankamo)
         optimPb.setMinimization(False)
         # contraintes sur (Px, Cco, Cx): maFct_cont >= 0
         optimPb.setInequalityConstraint(maFct_cont)
         # bounds sur (logPx, Cco, Cx)
-        boundsParam = ot.Interval([-35, eps, eps], [logPt, 1.0-eps, 1.0-eps])
+        boundsParam = ot.Interval([-35, epsC1, epsC1], [logPt, 1.0-epsC1, 1.0-epsC1])
         #print('boundsParam = ', boundsParam)
         optimPb.setBounds(boundsParam)
         # algo Cobyla pour ne pas avoir les gradients
         myAlgo = ot.Cobyla(optimPb)
+        myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(1e-1)
         myAlgo.setMaximumEvaluationNumber(10000)
         myAlgo.setMaximumIterationNumber(10000)
@@ -419,7 +313,7 @@ class ECLM(object):
         # Point de départ:
         # startPoint = [logPx, Cco, Cx]
         startPoint = [math.log(startingPoint[0]), startingPoint[1], startingPoint[2]]
-        myAlgo.setStartingPoint(startPoint) 
+        myAlgo.setStartingPoint(startPoint)
         if verbose:
             print('Mon point de départ verifie-t il les contraintes? ')
             if maFct_cont(startPoint)[0] > 0.0:
@@ -429,7 +323,7 @@ class ECLM(object):
 
         if verbose:
             ot.Log.Show(ot.Log.INFO)
-        myAlgo.setVerbose(verbose)
+            myAlgo.setVerbose(verbose)
 
         myAlgo.run()
 
@@ -467,7 +361,7 @@ class ECLM(object):
             maFctLogVrais_Mankamo_fixedCcoCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [1,2], [Cco_optim, Cx_optim])
             maFctLogVrais_Mankamo_fixedlogPxCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,2], [logPx_optim, Cx_optim])
 
-            coef = 0.1
+            coef = 0.05
             logPx_inf = (1-coef)*logPx_optim
             logPx_sup = (1+coef)*logPx_optim
             Cco_inf = (1-coef)*Cco_optim
@@ -497,12 +391,18 @@ class ECLM(object):
             print('graph (logPx, Cx) = (logPx_optim, Cx_optim)')
             g_fixedlogPxCx = maFctLogVrais_Mankamo_fixedlogPxCx.draw(Cco_inf, Cco_sup, NbPt)
 
-            # + point optimal
+            # + point optimal + contrainte: Cc0 < Cx
             pointOptim = ot.Sample(1, [Cco_optim, maFctLogVrais_Mankamo_fixedlogPxCx([Cco_optim])[0]])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCx.add(myCloud)
             g_fixedlogPxCx.setXTitle(r'$C_{co}$')
             g_fixedlogPxCx.setTitle(r'Log likelihood at $(\log P_{x}, C_{x}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cx_optim,'.2E'))
+            minValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMin()[1]
+            maxValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMax()[1]
+            lineConstraint = ot.Curve([Cx_optim, Cx_optim], [minValGraph, maxValGraph], 'constraint')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            g_fixedlogPxCx.add(lineConstraint)
 
             ####################
             # graphe (Cx) pour logPx = logPx_optim et Cco = Cco_optim
@@ -510,27 +410,38 @@ class ECLM(object):
             print('graph (logPx, Cco) = (logPx_optim, Cco_optim)')
             g_fixedlogPxCco = maFctLogVrais_Mankamo_fixedlogPxCco.draw(Cx_inf, Cx_sup, NbPt)
 
-            # + point optimal
+            # + point optimal + contrainte: Cc0 < Cx
             pointOptim = ot.Sample(1, [Cx_optim, maFctLogVrais_Mankamo_fixedlogPxCco([Cx_optim])[0]])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCco.add(myCloud)
             g_fixedlogPxCco.setXTitle(r'$C_x$')
             g_fixedlogPxCco.setTitle(r'Log likelihood at $(\log P_{x}, C_{co}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cco_optim,'.2E'))
-
+            minValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMin()[1]
+            maxValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMax()[1]
+            lineConstraint = ot.Curve([Cco_optim, Cco_optim], [minValGraph, maxValGraph], 'constraint')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            g_fixedlogPxCco.add(lineConstraint)
 
             ####################
             # graphe (Px, Cco) pour Cx = Cx_optim
-            # fonction contrainte
+            # fonction contraintes 1 et 2
             print('graph Cx = Cx_optim')
-            g_constraint = maFct_cont_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)
-            dr = g_constraint.getDrawable(0)
-            dr.setLegend('constraint')
+            g_constraint1 = maFct_cont_fixedCx.getMarginal([0]).draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)
+            dr = g_constraint1.getDrawable(0)
+            dr.setLevels([0.0])
+            dr.setLegend('constraint 1')
             dr.setLineStyle('dashed')
             dr.setColor('black')
-            g_constraint.setDrawables([dr])
+            g_constraint1.setDrawables([dr])
+            lineConstraint = ot.Curve([logPx_inf,logPx_sup], [Cx_optim, Cx_optim], 'constraint 2')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+
             # niveau de la loglikelihood
             g_fixedCx = maFctLogVrais_Mankamo_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)
-            g_fixedCx.add(g_constraint)
+            g_fixedCx.add(g_constraint1)
+            g_fixedCx.add(lineConstraint)
 
             # + point optimal
             pointOptim = ot.Sample(1, [logPx_optim, Cco_optim])
@@ -542,17 +453,22 @@ class ECLM(object):
 
             ####################
             # graphe (logPx, Cx) pour Cco = Cco_optim
-            # fonction contrainte
+            # fonction contraintes 1 et 2
             print('graph Cco = Cco_optim')
-            g_constraint = maFct_cont_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
-            dr = g_constraint.getDrawable(0)
-            dr.setLegend('constraint')
+            g_constraint1 = maFct_cont_fixedCco.getMarginal([0]).draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
+            dr = g_constraint1.getDrawable(0)
+            dr.setLevels([0.0])
+            dr.setLegend('constraint 1')
             dr.setLineStyle('dashed')
             dr.setColor('black')
-            g_constraint.setDrawables([dr])
+            g_constraint1.setDrawables([dr])
+            lineConstraint = ot.Curve([logPx_inf,logPx_sup], [Cco_optim, Cco_optim], 'constraint 2')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
             # niveau de la loglikelihood
             g_fixedCco = maFctLogVrais_Mankamo_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
-            g_fixedCco.add(g_constraint)
+            g_fixedCco.add(g_constraint1)
+            g_fixedCco.add(lineConstraint)
 
             # + point optimal
             pointOptim = ot.Sample(1, [logPx_optim, Cx_optim])
@@ -564,17 +480,19 @@ class ECLM(object):
 
             ####################
             # graphe (Cco, Cx) pour logPx = logPx_optim
-            # fonction contrainte
+            # fonction contraintes 1 et 2
             print('graph logPx = logPx_optim')
-            g_constraint = maFct_cont_fixedlogPx.draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
-            dr = g_constraint.getDrawable(0)
-            dr.setLegend('constraint')
+
+            g_constraint2 = maFct_cont_fixedlogPx.getMarginal([1]).draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
+            dr = g_constraint2.getDrawable(0)
+            dr.setLevels([0.0])
+            dr.setLegend('constraint 2')
             dr.setLineStyle('dashed')
             dr.setColor('black')
-            g_constraint.setDrawables([dr])
+            g_constraint2.setDrawables([dr])
             # niveau de la loglikelihood
             g_fixedlogPx = maFctLogVrais_Mankamo_fixedlogPx.draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
-            g_fixedlogPx.add(g_constraint)
+            g_fixedlogPx.add(g_constraint2)
 
             # + point optimal
             pointOptim = ot.Sample(1, [Cco_optim, Cx_optim])
@@ -586,27 +504,25 @@ class ECLM(object):
 
         return mankamoParam, generalParam, finalLogLikValue, [g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx]
 
-
-    
     def computeGeneralParamFromMankamo(self, mankamoParam):
         """
-        Compute the general parameter :math:`(\pi, d_b, d_x, d_R, y_{xm})` from the Mankamo parameter :math:`(P_t, P_x, C_{co}, C_x)` under the Mankamo assumption (:eq:`mankamoHyp`).
+        Computes the general parameter from the Mankamo parameter  under the Mankamo assumption.
 
         Parameters
         ----------
         mankamoParam :  list of float
-            The point :math:`(P_t, P_x, C_{co}, C_x)`
-        
+            The  Mankamo parameter (:eq:`MankamoParam`).
+
         Returns
         -------
         generalParam : list of float
-            The point :math:`(\pi, d_b, d_x, d_R, y_{xm})`
+            The general parameter (:eq:`generalParam`).
 
         Notes
         -----
-        The general parameter  :math:`(\pi, d_b, d_x, d_R, y_{xm})` is computed from the parameter  :math:`(P_t, P_x, C_{co}, C_x)` under the Mankamo assumption where :math:`y_{xm} = 1-d_R`, using equations (:eq:`Parma2to1Mankamo`).
+        The general parameter (:eq:`generalParam`) is computed from the Mankamo parameter (:eq:`MankamoParam`) under the Mankamo assumption (:eq:`mankamoHyp`) where :math:`y_{xm} = 1-d_R`, using equations (:eq:`Param2to1Mankamo`).
         """
-        
+
         Pt, Px, Cco, Cx = mankamoParam
         pi_weight = 1- Px/ot.DistFunc.pNormal(-math.sqrt(1-Cx))
         db = -math.sqrt(Cco)/ot.DistFunc.qNormal((Pt-Px)/pi_weight)
@@ -616,31 +532,32 @@ class ECLM(object):
 
         return [pi_weight, db, dx, dR, yxm]
 
-    
+
+
     def computePEG(self, k):
         """
-        Compute the :math:`\mbox{PEG}(k|n)` probability.
+        Computes the :math:`\\mbox{PEG}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \leq k \leq n`
-            Order of the common failure.
-        
+        k : int, :math:`0 \\leq k \\leq n`
+            Multiplicity of the common cause failure event.
+
         Returns
         -------
-        peg_kn : float,  :math:`0 \leq  \mbox{PEG}(k|n) \leq 1`
-            The :math:`\mbox{PEG}(k|n)`  probability.
+        peg_kn : float,  :math:`0 \\leq  \\mbox{PEG}(k|n) \\leq 1`
+            The :math:`\\mbox{PEG}(k|n)` probability.
 
         Notes
         -----
-        The  :math:`\mbox{PEG}(k|n)` is computed using (:eq:`PEG_red`).
+        The  :math:`\\mbox{PEG}(k|n)` probability is computed using (:eq:`PEG_red`).
         """
 
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
 
         pi_weight, db, dx, dR, y_xm = self.generalParameter
-        
+
         # Numerical range of the  Normal() distribution
         val_min = -7.65
         val_max = 7.65
@@ -678,9 +595,9 @@ class ECLM(object):
         int_b = 0.0
         if yMin_b < yMax_b:
             int_b =  self.integrationAlgo.integrate(maFctKernel_b, myInterval_b)[0]
-        # extreme load part integration
+            # extreme load part integration
         int_x = 0.0
-        if yMin_x < yMax_x:    
+        if yMin_x < yMax_x:
             int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
 
         PEG = int_b + int_x
@@ -690,53 +607,51 @@ class ECLM(object):
 
     def  computePEGall(self):
         """
-        Compute all the :math:`\mbox{PEG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
-        
+        Computes all the :math:`\\mbox{PEG}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+
         Returns
         -------
-        peg_list : seq of float,  :math:`0 \leq  \mbox{PEG}(k|n)`
-            The :math:`\mbox{PEG}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
+        peg_list : seq of float,  :math:`0 \\leq  \\mbox{PEG}(k|n) \\leq 1`
+            The :math:`\\mbox{PEG}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
 
         Notes
         -----
-        All the  :math:`\mbox{PEG}(k|n)` probabilities are computed using (:eq:`PEG_red`).
+        All the  :math:`\\mbox{PEG}(k|n)` probabilities are computed using (:eq:`PEG_red`).
         """
 
         PEG_list = list()
         for k in range(self.n+1):
             PEG_list.append(self.computePEG(k))
         return PEG_list
-    
-   
+
+
     def computePSG1(self):
         """
-        Compute the :math:`\mbox{PSG}(1|n)` probability.
-        
+        Computes the :math:`\\mbox{PSG}(1|n)` probability.
+
         Returns
         -------
-        psg_1n : float,  :math:`0 \leq  \mbox{PSG}(1|n) \leq 1`
-            The :math:`\mbox{PSG}(1|n)`  probability.
+        psg_1n : float,  :math:`0 \\leq  \\mbox{PSG}(1|n) \\leq 1`
+            The :math:`\\mbox{PSG}(1|n)`  probability.
 
         Notes
         -----
-        The  :math:`\mbox{PSG}(1|n)` is computed using:
+        The  :math:`\\mbox{PSG}(1|n)` probability is computed using:
 
-        ..math::
-            :label:`PSG1_red`
-        
-            \begin{array}{lcl}
-               PSG(1) & = & \int_{-\infty}^{+\infty}\left[ \dfrac{\pi}{d_b} \varphi
-         \left(\dfrac{y}{d_b}\right) \right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy +  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
-                     & = & \pi \left[\textcolor{red}{1-}\Phi\left(\dfrac{1}{\sqrt{d_b^2+d_R^2}}\right)\right] +  (1-\pi) \left[\textcolor{red}{1-}\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]
-            \end{array}
+        .. math::
+            :label: PSG1_red
 
+            \\begin{array}{lcl}
+               PSG(1) & = & \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\varphi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
+                     & = & \\pi \\left[\\textcolor{red}{1-}\\varphi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[\\textcolor{red}{1-}\\varphi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
+            \\end{array}
         """
 
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
-        
+
         pi_weight, db, dx, dR, y_xm = self.generalParameter
-        
+
         # PSG(1) = Pb + Px
         val_b = math.sqrt(db*db+dR*dR)
         val_x = math.sqrt(dx*dx+dR*dR)
@@ -745,48 +660,32 @@ class ECLM(object):
         return Pb+Px
 
 
-      
+
 
     def computePSG(self, k):
         """
-        Compute the :math:`\mbox{PSG}(k|n)` probability.
+        Computes the :math:`\\mbox{PSG}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \leq k \leq n`
-            Order of the common failure.
-        
+        k : int, :math:`0 \\leq k \\leq n`
+            Multiplicity of the common cause failure event.
+
         Returns
         -------
-        psg_kn : float,  :math:`0 \leq  \mbox{PSG}(k|n) \leq 1`
-            The :math:`\mbox{PSG}(k|n)`  probability.
+        psg_kn : float,  :math:`0 \\leq  \\mbox{PSG}(k|n) \\leq 1`
+            The :math:`\\mbox{PSG}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\mbox{PSG}(k|n)` is computed using fo :math:`k !=1`:
-
-        ..math::
-            :label:`PSG_red` 
-
-            \mbox{PSG}(k) =  \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
-
-        and for :math:`k=1`:
-
-        ..math::
-            :label:`PSG1_red`
-        
-            \begin{array}{lcl}
-               PSG(1) & = & \int_{-\infty}^{+\infty}\left[ \dfrac{\pi}{d_b} \varphi
-         \left(\dfrac{y}{d_b}\right) \right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy +  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
-                     & = & \pi \left[\textcolor{red}{1-}\Phi\left(\dfrac{1}{\sqrt{d_b^2+d_R^2}}\right)\right] +  (1-\pi) \left[\textcolor{red}{1-}\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]
-            \end{array}    
+        The  :math:`\\mbox{PSG}(k|n)` probability is computed using (:eq:`PSG_red`) for :math:`k !=1` and using (:eq:`PSG1_red`) for :math:`k=1`.
         """
 
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
-        
+
         pi_weight, db, dx, dR, y_xm = self.generalParameter
-        
+
         # specal computation on that case
         if k==1:
             return self.computePSG1()
@@ -797,7 +696,7 @@ class ECLM(object):
 
         def kernel_b(yPoint):
             y = yPoint[0]
-            terme1 = pi_weight/db * ot.DistFunc.dNormal(y/db) 
+            terme1 = pi_weight/db * ot.DistFunc.dNormal(y/db)
             terme2 = math.pow(ot.DistFunc.pNormal((y-1)/dR), k)
             #print('terme1, terme2 = ', terme1, terme2)
             return [terme1 * terme2]
@@ -812,7 +711,7 @@ class ECLM(object):
         maFctKernel_b = ot.PythonFunction(1,1,kernel_b)
         maFctKernel_x = ot.PythonFunction(1,1,kernel_x)
 
-        # le range num de la loi Normale() est [val_min, val_max] = [-7.65, 7.65] 
+        # le range num de la loi Normale() est [val_min, val_max] = [-7.65, 7.65]
         yMin_b = max(val_min*db, 1.0+dR*val_min)
         yMax_b = min(val_max*db, 1.0+dR*val_max)
         myInterval_b = ot.Interval(yMin_b, yMax_b)
@@ -825,29 +724,27 @@ class ECLM(object):
         int_b = 0.0
         if yMin_b < yMax_b:
             int_b =  self.integrationAlgo.integrate(maFctKernel_b, myInterval_b)[0]
-        # integrale partie x
+            # integrale partie x
         int_x = 0.0
-        if yMin_x < yMax_x:    
+        if yMin_x < yMax_x:
             int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
-        #print('int_b, int_x,  = ', int_b, int_x)
+            #print('int_b, int_x,  = ', int_b, int_x)
 
         PSG = int_b + int_x
         return PSG
 
-    
-      
     def  computePSGall(self):
         """
-        Compute all the :math:`\mbox{PSG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
-        
+        Computes all the :math:`\\mbox{PSG}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+
         Returns
         -------
-        psg_list : seq of float,  :math:`0 \leq  \mbox{PSG}(k|n)`
-            The :math:`\mbox{PSG}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
+        psg_list : seq of float,  :math:`0 \\leq  \\mbox{PSG}(k|n) \\leq 1`
+            The :math:`\\mbox{PSG}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
 
         Notes
         -----
-        All the  :math:`\mbox{PSG}(k|n)` probabilities are computed using (:eq:`PSG_red`) for :math:`k != 1` and (:eq:`PSG1_red`) for :math:`k = 1`.
+        All the  :math:`\\mbox{PSG}(k|n)` probabilities are computed using (:eq:`PSG_red`) for :math:`k != 1` and (:eq:`PSG1_red`) for :math:`k = 1`.
         """
 
         PSG_list = list()
@@ -855,37 +752,31 @@ class ECLM(object):
             PSG_list.append(self.computePSG(k))
         return PSG_list
 
-        
+
     def computePES(self, k):
         """
-        Compute the :math:`\mbox{PES}(k|n)` probability.
+        Computes the :math:`\\mbox{PES}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \leq k \leq n`
-            Order of the common failure.
-        
+        k : int, :math:`0 \\leq k \\leq n`
+            Multiplicity of the failure event.
+
         Returns
         -------
-        pes_kn : float,  :math:`0 \leq  \mbox{PES}(k|n) \leq 1`
-            The :math:`\mbox{PES}(k|n)`  probability.
+        pes_kn : float,  :math:`0 \\leq  \\mbox{PES}(k|n) \\leq 1`
+            The :math:`\\mbox{PES}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\mbox{PES}(k|n)` is computed using  for :math:`0 \leq k \leq n`:
-
-        ..math::
-            :eq:`PES_red`
-
-            \mbox{PES}(k|n) = C_n^k \, \mbox{PEG}(k|n)
-
+        The  :math:`\\mbox{PES}(k|n)` probability is computed using  (:eq:`PES_red`).
         """
 
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
-        
+
         pi_weight, db, dx, dR, y_xm = self.generalParameter
-        
+
         PEG = self.computePEG(k)
         PES = math.comb(self.n,k)*PEG
         return PES
@@ -893,16 +784,16 @@ class ECLM(object):
 
     def  computePESall(self):
         """
-        Compute all the :math:`\mbox{PES}(k|n)` probabilities for :math:`0 \leq k \leq n`.
-        
+        Computes all the :math:`\\mbox{PES}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+
         Returns
         -------
-        pes_list : seq of float,  :math:`0 \leq  \mbox{PES}(k|n)`
-            The :math:`\mbox{PES}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
+        pes_list : seq of float,  :math:`0 \\leq  \\mbox{PES}(k|n) \\leq 1`
+            The :math:`\\mbox{PES}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
 
         Notes
         -----
-        All the  :math:`\mbox{PES}(k|n)` probabilities are computed using (:eq:`PES_red`).
+        All the  :math:`\\mbox{PES}(k|n)` probabilities are computed using (:eq:`PES_red`).
         """
 
         PES_list = list()
@@ -910,54 +801,46 @@ class ECLM(object):
             PES_list.append(self.computePES(k))
         return PES_list
 
-                      
 
     def computePTS(self, k):
         """
-        Compute the :math:`\mbox{PTS}(k|n)` probability.
+        Computes the :math:`\\mbox{PTS}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \leq k \leq n`
-            Order of the common failure.
-        
+        k : int, :math:`0 \\leq k \\leq n`
+            Multiplicity of the common cause failure event.
+
         Returns
         -------
-        pts_kn : float,  :math:`0 \leq  \mbox{PTS}(k|n) \leq 1`
-            The :math:`\mbox{PTS}(k|n)`  probability.
+        pts_kn : float,  :math:`0 \\leq  \\mbox{PTS}(k|n) \\leq 1`
+            The :math:`\\mbox{PTS}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\mbox{PTS}(k|n)` is computed using  for :math:`0 \leq k \leq n`:
-
-        ..math::
-            :eq:`PTS_red`
-
-             \mbox{PTS}(k|n) = \sum_{i=k}^n  \mbox{PES}(i|n)
-
-        where  the :math:`\mbox{PES}(i|n)` probability is computed using :eq:`PES_red`.
+        The  :math:`\\mbox{PTS}(k|n)` probability is computed using  (:eq:`PTS_red`)  where  the :math:`\\mbox{PES}(i|n)` probability is computed using (:eq:`PES_red`).
         """
 
-        
+
         PTS = 0.0
         for i in range(k,self.n+1):
             PTS += self.computePES(i)
         return PTS
 
-                            
+
 
     def  computePTSall(self):
         """
-        Compute all the :math:`\mbox{PTS}(k|n)` probabilities for :math:`0 \leq k \leq n`.
-        
+        Computes all the :math:`\\mbox{PTS}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+
         Returns
         -------
-        pts_list : seq of float,  :math:`0 \leq  \mbox{PTS}(k|n)`
-            The :math:`\mbox{PTS}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
+        pts_list : seq of float,  :math:`0 \\leq  \\mbox{PTS}(k|n) \\leq 1`
+            The :math:`\\mbox{PTS}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
 
         Notes
         -----
-        All the  :math:`\mbox{PTS}(k|n)` probabilities are computed using (:eq:`PS_red`).
+        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using (:eq:`PS_red`).
         """
 
         PTS_list = list()
@@ -966,101 +849,333 @@ class ECLM(object):
         return PTS_list
 
 
-
     def estimateBootstrapParamSampleFromMankamo(self, Nb, startingPoint, blockSize, fileNameRes):
         """
-        Generates a Bootstrap sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` using the Mankamo assumption :math:`y_{xm} = 1-d_R`.
-        
+        Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
+
         Parameters
         ----------
         Nb : int
             The size of the sample generated.
-        startingPoint : :class:`~openturns.Point`
-            Start point :math:`(P_t, P_x, C_{co}, C_x)` for the optimization problem.
+        startingPoint : list of float,
+            Mankamo starting point (:eq:`MankamoParam`) for the optimization problem.
         blockSize : int,
-            The block size after which the sample is saved. 
+            The block size after which the sample is saved.
         fileNameRes: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` using the Mankamo assumption :math:`y_{xm} = 1-d_R`.
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption (:eq:`mankamoHyp`).
 
         Notes
         -----
-        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total emprical law os the MultiNoamil law parametrerized by the empirical probabilities :math:`[p_0^{emp},
-\dots, p_n^{emp}]` where :math:`p_k^{emp} = \dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisatio prblem (:eq:`optimMankamo`) is solved using the specifiedstarting point.
+        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\\dots, p_n^{emp}]` where :math:`p_k^{emp} = \\dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem (:eq:`optimMankamo`) is solved using the specified starting point.
 
-        The function calls the script script_bootstrap_ParamFromMankamo.py that uses the parallelisation of the pool object of the multiprocessing module. It creates a file :math:`myECLM.xml` that stores the total impact vector to be read by the script.
+        The function calls the script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
 
-        The computation is saved in the csv file named fileNameRes every blocksize calculus. The computation can be interrupted: it will be restarted from the last filenameRes saved.
+        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
 
         myStudy = ot.Study('myECLM.xml')
+        myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.add('startingPoint', ot.Point(startingPoint))
         myStudy.save()
 
         import os
-        command =  'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nb, blockSize, fileNameRes)         
-        os.system(command)
+        directory_path = os.getcwd()
+        fileName = directory_path + "/script_bootstrap_ParamFromMankamo.py"
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        with open(fileName, "w") as f:
+            f.write("#############################\n"\
+"# Ce script :\n"\
+"#    - lance un bootstrap sur la loi Multinomiale paramétrée par le vecteur d'impact total initial sous l'hypothèse de Mankamo\n"\
+"#     - calcule les estimateurs de max de vraisemblance:\n"\
+"#       de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] avec  yxm_optim = 1-dR_optim\n"\
+"#     - sauve le sample de dimension 9 dans filenameRes: de type adresse/fichier.csv\n"\
+"#    - le fichier fileNameInput contient les arguments: vectImpactTotal, startingPoint: de type adresse/fichier.xml\n"\
+"\n"\
+"\n"\
+"import openturns as ot\n"\
+"from otECLM import ECLM\n"\
+"\n"\
+"from time import time\n"\
+"import sys\n"\
+"\n"\
+"from multiprocessing import Pool\n"\
+"# barre de progression\n"\
+"import tqdm\n"\
+"\n"\
+"# Ot Parallelisme desactivated\n"\
+"ot.TBB.Disable()\n"\
+"\n"\
+"# Nombre d'échantillons bootstrap à générer\n"\
+"Nbootstrap = int(sys.argv[1])\n"\
+"# taille des blocs\n"\
+"blockSize = int(sys.argv[2])\n"\
+"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+"fileNameRes = str(sys.argv[3])\n"\
+"\n"\
+"print('boostrap param : ')\n"\
+"print('Nbootstrap, blockSize, fileNameRes  = ', Nbootstrap, blockSize, fileNameRes )\n"\
+"\n"\
+"\n"\
+"# Import de  vectImpactTotal et startingPoint\n"\
+"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy.load()\n"\
+"integrationAlgo = ot.IntegrationAlgorithm()\n"\
+"myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+"totalImpactVector = ot.Indices()\n"\
+"myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"startingPoint = ot.Point()\n"\
+"myStudy.fillObject('startingPoint', startingPoint)\n"\
+"\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"\n"\
+"# Sollicitations number\n"\
+"N = sum(totalImpactVector)\n"\
+"\n"\
+"# Empirical distribution of the number of sets of failures among N sollicitations\n"\
+"MultiNomDist = ot.Multinomial(N, [v/N for v in totalImpactVector])\n"\
+"\n"\
+"def job(inP):\n"\
+"    point, startingPoint = inP\n"\
+"    vectImpactTotal = ot.Indices([int(round(x)) for x in point])\n"\
+"    myECLM.setTotalImpactVector(vectImpactTotal)\n"\
+"    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False, False)\n"\
+"    resMankamo = res[0]\n"\
+"    resGeneral = res[1]\n"\
+"    resFinal = resMankamo + resGeneral\n"\
+"    return resFinal\n"\
+"\n"\
+"Ndone = 0\n"\
+"block = 0\n"\
+"t00 = time()\n"\
+"\n"\
+"\n"\
+"#  Si des calculs ont déjà été faits, on les importe:\n"\
+"try:\n"\
+"    print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
+"    allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    print('import ok')\n"\
+"except:\n"\
+"    print('No previous results')\n"\
+"    # the size of res is 9\n"\
+"    allResults = ot.Sample(0, 9)\n"\
+"\n"\
+"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
+"\n"\
+"# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
+"Nskip = allResults.getSize()\n"\
+"N_remainder = Nbootstrap - Nskip\n"\
+"print('Skip = ', Nskip)\n"\
+"for i in range(Nskip):\n"\
+"    noMatter = MultiNomDist.getRealization()\n"\
+"while Ndone < N_remainder:\n"\
+"    block += 1\n"\
+"     # Nombre de calculs qui restent à faire\n"\
+"    size = min(blockSize, N_remainder - Ndone)\n"\
+"    print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nbootstrap)\n"\
+"    t0 = time()\n"\
+"    allInputs = [[MultiNomDist.getRealization(), startingPoint] for i in range(size)]\n"\
+"    t1 = time()\n"\
+"    print('t=%g' % (t1 - t0), 's')\n"\
+"\n"\
+"    t0 = time()\n"\
+"    with Pool() as pool:\n"\
+"        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=8), total=len(allInputs))))\n"\
+"    t1 = time()\n"\
+"    print('t=%g' % (t1 - t0), 's', 't (start)=%g' %(t1 - t00), 's')\n"\
+"    Ndone += size\n"\
+"    # Sauvegarde apres chaque bloc\n"\
+"    allResults.exportToCSVFile(fileNameRes)\n"\
+"   ")
 
-    
+        command =  'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nb, blockSize, fileNameRes)
+        os.system(command)
+        os.remove(fileName)
+        os.remove("myECLM.xml")
+
 
     def computeECLMProbabilitiesFromMankano(self, blockSize, fileNameInput, fileNameRes):
         """
-        Computes the sample of all the ECLM probabilities from a sample of Mankamo parameters using the Mankamo assumption (:eq:`mankamoHyp`).
-        
+        Computes the sample of all the ECLM probabilities from a sample of Mankamo parameters using the Mankamo assumption.
+
         Parameters
         ----------
         blockSize : int,
-            The block size after which the sample is saved. 
+            The block size after which the sample is saved.
         fileNameInput: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
         fileNameRes: string,
             The csv file that stores the ECLM probabilities.
 
         Notes
         -----
-        The ECLM probabilities are computed according to the order :math:`(\mbox{PEG}(0|n), \dots, \mbox{PEG}(n|n), \mbox{PSG}(0|n), \dots, \mbox{PSG}(n|n), \mbox{PES}(0|n), \dots, \mbox{PES}(n|n), \mbox{PTS}(0|n), \dots, \mbox{PTS}(n|n))` using equantions (:eq:`PEG_red`), (:eq:`PSG_red`), (:eq:`PES_red`),(:eq:`PTS_red`), using the Mankamo assumption :math:`y_{xm} = 1-d_R`.
+        The ECLM probabilities are computed using the Mankamo assumption (:eq:`mankamoHyp`). They are returned according to the order :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))` using equantions (:eq:`PEG_red`), (:eq:`PSG_red`), (:eq:`PES_red`),(:eq:`PTS_red`), using the Mankamo assumption :math:`y_{xm} = 1-d_R`.
 
-        The function calls the script script_bootstrap_ECLMProbabilities.py that uses the parallelisation of the pool object of the multiprocessing module. It creates a file :math:`myECLM.xml` that stores the total impact vector to be read by the script.
+        The function calls the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
 
-        The computation is saved in the csv file named fileNameRes every blocksize calculus. The computation can be interrupted: it will be restarted from the last filenameRes saved.
+        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
 
         myStudy = ot.Study('myECLM.xml')
+        myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.save()
 
         import os
+        directory_path = os.getcwd()
+        fileName = directory_path + "/script_bootstrap_ECLMProbabilities.py"
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        with open(fileName, "w") as f:
+            f.write("#############################\n"\
+"# Ce script :\n"\
+"#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
+"#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
+"#     - sauve le sample des grandeurs  probabilistes dans  le fichier fileNameRes (de type adresse/fichier.csv)\n"\
+"\n"\
+"\n"\
+"\n"\
+"import openturns as ot\n"\
+"from otECLM import ECLM\n"\
+"\n"\
+"from time import time\n"\
+"import sys\n"\
+"\n"\
+"from multiprocessing import Pool\n"\
+"# barre de progression\n"\
+"import tqdm\n"\
+"\n"\
+"# Ot Parallelisme desactivated\n"\
+"ot.TBB.Disable()\n"\
+"\n"\
+"\n"\
+"# Nombre de grappes\n"\
+"n = int(sys.argv[1])\n"\
+"# taille des blocs\n"\
+"blockSize = int(sys.argv[2])\n"\
+"# Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+"fileNameInput = str(sys.argv[3])\n"\
+"# Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
+"fileNameRes = str(sys.argv[4])\n"\
+"\n"\
+"print('ECLM prob')\n"\
+"print('n, fileNameInput, fileNameRes = ', n, fileNameInput, fileNameRes)\n"\
+"\n"\
+"# Import de  vectImpactTotal et startingPoint\n"\
+"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy.load()\n"\
+"integrationAlgo = ot.IntegrationAlgorithm()\n"\
+"myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+"totalImpactVector = ot.Indices()\n"\
+"myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"\n"\
+"\n"\
+"def job(inP):\n"\
+"    # inP = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+"    myECLM.setGeneralParameter(inP[4:9])\n"\
+"    PEG_list = myECLM.computePEGall()\n"\
+"    PSG_list = myECLM.computePSGall()\n"\
+"    PES_list = myECLM.computePESall()\n"\
+"    PTS_list = myECLM.computePTSall()\n"\
+"    res_list = list()\n"\
+"    res_list += PEG_list\n"\
+"    res_list += PSG_list\n"\
+"    res_list += PES_list\n"\
+"    res_list += PTS_list\n"\
+"    return res_list\n"\
+"\n"\
+"\n"\
+"Ndone = 0\n"\
+"block = 0\n"\
+"t00 = time()\n"\
+"\n"\
+"\n"\
+"# Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+"# sauvé dans le fichier fileNameInput\n"\
+"sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
+"Nsample = sampleParam.getSize()\n"\
+"\n"\
+"\n"\
+"#  Si des calculs ont déjà été faits, on les importe:\n"\
+"try:\n"\
+"    print('[ECLMProbabilities] Try to import previous results from {}'.format(fileNameRes))\n"\
+"    allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    print('import ok')\n"\
+"except:\n"\
+"    # la dimension du sample est 4*(n+1)\n"\
+"    dim = 4*(n+1)\n"\
+"    allResults = ot.Sample(0, dim)\n"\
+"\n"\
+"\n"\
+"# Description\n"\
+"desc = ot.Description()\n"\
+"desc =  ['PEG('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+"desc += ['PSG('+str(k) +')' for k in range(n+1)]\n"\
+"desc += ['PES('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+"desc += ['PTS('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+"allResults.setDescription(desc) \n"\
+"\n"\
+"# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
+"Nskip = allResults.getSize()\n"\
+"remainder_sample = sampleParam.split(Nskip)\n"\
+"N_remainder = remainder_sample.getSize()\n"\
+"print('N_remainder = ', N_remainder)\n"\
+"while Ndone < N_remainder:\n"\
+"    block += 1\n"\
+"    # Nombre de calculs qui restent à faire\n"\
+"    size = min(blockSize, N_remainder - Ndone)\n"\
+"    print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', N_remainder)\n"\
+"    t0 = time()\n"\
+"    allInputs = [remainder_sample[(block-1)*blockSize + i] for i in range(size)]\n"\
+"    t1 = time()\n"\
+"    print('t=%.3g' % (t1 - t0), 's')\n"\
+"\n"\
+"    t0 = time()\n"\
+"    pool = Pool()\n"\
+"    # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+"    allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs), total=len(allInputs))))\n"\
+"    pool.close()\n"\
+"    t1 = time()\n"\
+"    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
+"    Ndone += size\n"\
+"    # Sauvegarde apres chaque bloc\n"\
+"    allResults.exportToCSVFile(fileNameRes)")
+
         command =  'python script_bootstrap_ECLMProbabilities.py {} {} {} {}'.format(self.n, blockSize, fileNameInput, fileNameRes)
         os.system(command)
+        os.remove(fileName)
+        os.remove("myECLM.xml")
 
-        
+
     def analyse_graphsECLMParam(self, fileNameSample):
         """
-        Produces graphs to analyse a sample of :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
+        Produces graphs to analyse a sample of (Mankamo and general) parameters.
 
         Parameters
         ----------
         fileNameSample: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
 
         Returns
         -------
-        graphPairsMankamoParam : :class:`~openturns.Graph`,
-            The Pairs graph of the Mankamo parameter  :math:`(P_t, P_x, C_{co}, C_x)`
-
-        graphPairsGeneralParam : :class:`~openturns.Graph`,
-            The Pairs graph of the general parameter  :math:`(\pi, d_b, d_x, d_R, y_{xm})`
-        
-        graphMarg_list : list of :class:`~openturns.Graph`,
-            The list of the marginal pdf of the Mankamo parameter and the general parameter.
-        
-        descParam: :class:`~openturns.Description`,
-            Description of each param.
+        graphPairsMankamoParam : :class:`~openturns.Graph`
+            The Pairs graph of the Mankamo parameter  (:eq:`MankamoParam`).
+        graphPairsGeneralParam : :class:`~openturns.Graph`
+            The Pairs graph of the general parameter (:eq:`generalParam`).
+        graphMarg_list : list of :class:`~openturns.Graph`
+            The list of the marginal pdf of the Mankamoand general parameters.
+        descParam: :class:`~openturns.Description`
+            Description of each paramater.
 
         Notes
         -----
-        The list of graph  graphMarg_list is given following the order :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
-        Each distribution is approximated with a Histogrm and a gaussian kernel smoothing.
+        i        The  marginal distributions are first estimated for the Mankamo parameter (:eq:`MankamoParam`) then for the general parameter (:eq:`generalParam`).
+
+        Each distribution is approximated with a Histogram and a normal kernel smoothing.
         """
 
         sampleParamAll = ot.Sample.ImportFromCSVFile(fileNameSample)
@@ -1096,45 +1211,45 @@ class ECLM(object):
 
         return graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam
 
-                            
+
     def analyse_graphsECLMProbabilities(self, fileNameSample, kMax):
         """
-        Produces graphs to analyse a sample of all the ECL probabilities.
+        Produces graphs to analyse a sample of all the ECLM probabilities.
 
         Parameters
         ----------
-        fileNameSample: string,
+        fileNameSample: string
             The csv file that stores the ECLM probabilities.
 
-        kMax : int, :math:`kMx \leq 1`
-            The maximal order studied.
+        kMax : int, :math:`0 \\leq k_{max} \\leq n`
+            The maximal multiplicity of the common cause failure.
 
         Returns
         -------
-        graphPairs_list : list of :class:`~openturns.Graph`,
+        graphPairs_list : list of :class:`~openturns.Graph`
             The Pairs graph of the ECLM probabilities.
 
-        graphPEG_PES_PTS_list : list of :class:`~openturns.Graph`,
-            The Pairs graph of the probabilities :math:`(\mbox{PEG}(k|n),\mbox{PES}(k|n), \mbox{PTS}(k|n))` for :math:`0 \leq k \leq kMax`.
-        
-        graphMargPEG_list : list of :class:`~openturns.Graph`,
-            The list of the marginal pdf of the  :math:`\mbox{PEG}(k|n)` probabilities  for :math:`0 \leq k \leq kMax`.
-        
-        graphMargPSG_list : list of :class:`~openturns.Graph`,
-            The list of the marginal pdf of the  :math:`\mbox{PSG}(k|n)` probabilities  for :math:`0 \leq k \leq kMax`.
-        
-        graphMargPES_list : list of :class:`~openturns.Graph`,
-            The list of the marginal pdf of the  :math:`\mbox{PES}(k|n)` probabilities  for :math:`0 \leq k \leq kMax`.
-        
-        graphMargPTS_list : list of :class:`~openturns.Graph`,
-            The list of the marginal pdf of the  :math:`\mbox{PTS}(k|n)` probabilities  for :math:`0 \leq k \leq kMax`.
-        
-        desc_list: :class:`~openturns.Description`,
+        graphPEG_PES_PTS_list : list of :class:`~openturns.Graph`
+            The Pairs graph of the probabilities :math:`(\\mbox{PEG}(k|n),\\mbox{PES}(k|n), \\mbox{PTS}(k|n))` for :math:`0 \\leq k \\leq k_{max}`.
+
+        graphMargPEG_list : list of :class:`~openturns.Graph`
+            The list of the marginal pdf of the  :math:`\\mbox{PEG}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+
+        graphMargPSG_list : list of :class:`~openturns.Graph`
+            The list of the marginal pdf of the  :math:`\\mbox{PSG}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+
+        graphMargPES_list : list of :class:`~openturns.Graph`
+            The list of the marginal pdf of the  :math:`\\mbox{PES}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+
+        graphMargPTS_list : list of :class:`~openturns.Graph`
+            The list of the marginal pdf of the  :math:`\\mbox{PTS}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+
+        desc_list: :class:`~openturns.Description`
             Description of each graph.
 
         Notes
         -----
-        Each distribution is approximated with a Histogrm and a gaussian kernel smoothing.        
+        Each distribution is approximated with a Histogram and a normal kernel smoothing.
         """
 
         sampleProbaAll = ot.Sample.ImportFromCSVFile(fileNameSample)
@@ -1270,37 +1385,36 @@ class ECLM(object):
 
         return [graphPairsPEG, graphPairsPSG, graphPairsPES, graphPairsPTS], graphPEG_PES_PTS_list, graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list, [descPairs, descPEG_PES_PTS, descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
-                            
+
 
     def analyse_distECLMProbabilities(self, fileNameSample, kMax, confidenceLevel, factoryColl):
         """
-        Fits a distribution on a sample of all the ECL probabilities.
+        Fits  distribution on ECL probabilities sample.
 
-        Parameter
-        ---------
-        fileNameSample: string,
-            The csv file that stores the ECLM probabilities.
-        kMax : int, :math:`kMax \leq 1`,
-            The maximal order studied.
-        confidenceLevel : float, :math:`0 \leq confidenceLevel \leq 1`,
-            The confidence level of ech interval.
-        factoryCollection : list of :class:`~openturns.DistributionFactory`,
-            List of factories that will be used to fit a distribution to the sample.        
-        desc_list: :class:`~openturns.Description`,
+        Parameters
+        ----------
+        fileNameSample: string
+            The csv file that stores the sample of all the ECLM probabilities.
+        kMax : int, :math:`0 \\leq k_{max} \\leq 1`
+            The maximal multipicity of the common cause failure.
+        confidenceLevel : float, :math:`0 \\leq confidenceLevel \\leq 1`
+            The confidence level of each interval.
+        factoryCollection : list of :class:`~openturns.DistributionFactory`
+            List of factories that will be used to fit a distribution to the sample.
+        desc_list: :class:`~openturns.Description`
             Description of each graph.
 
         Returns
         -------
-        confidenceInterval_list : list of :class:`openturns.Interval`,
-            The confidence intervals of the ECLM probabilities.
-        graph_marg_list : list of  :class:`openturns.Graph`,
-            The fitting graph of each ECLM probability.
+        confidenceInterval_list : list of :class:`~openturns.Interval`
+            The confidence intervals of all the  ECLM probability.
+        graph_marg_list : list of  :class:`~openturns.Graph`
+            The fitting graphs of all the ECLM probabilities.
 
         Notes
         -----
-        The confidence intervals and the graphs illustrating the fitting are given following the following order:  :math:`(\mbox{PEG}(0|n), \dots, \mbox{PEG}(n|n), \mbox{PSG}(0|n), \dots, \mbox{PSG}(n|n), \mbox{PES}(0|n), \dots, \mbox{PES}(n|n), \mbox{PTS}(0|n), \dots, \mbox{PTS}(n|n))`.
-
-        Each fitting is tested using the Lilliefors test. The result is printed and the best model aong the list of factories is given. Care: it is not guaranted that the best model is accepted by the Lilliefors test.
+        The confidence intervals and the graphs illustrating the fitting are given according to the following order:  :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))`.
+        Each fitting is tested using the Lilliefors test. The result is printed and the best model among the list of factories is given. Care: it is not guaranted that the best model be accepted by the Lilliefors test.
         """
 
         sampleProbaAll = ot.Sample.ImportFromCSVFile(fileNameSample)
@@ -1468,86 +1582,191 @@ class ECLM(object):
             graphMargPTS_list.append(graph)
             descMargPTS.add('PTS_'+str(k))
 
-
-
         return [IC_PEG_list, IC_PSG_list, IC_PES_list, IC_PTS_list], [graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list] , [descMargPEG, descMargPSG, descMargPES, descMargPTS]
+
 
 
 
     def computeKMax_PTS(self, p):
         """
-        Computes the minimal order with a probability greater than a given threshold.
+        Computes the minimal  multipicity of the common cause failure with a probability greater than a given threshold.
 
-        Parameter
-        ---------
-        p : float, :math:` 0 \leq p \leq 1`
+        Parameters
+        ----------
+        p : float, :math:` 0 \\leq p \\leq 1`
             The probability threshold.
 
         Returns
         -------
-        kMax : int,
-            The minimal order with a probability greater than :math:`p`.
+        kMax : int
+            The minimal  multipicity of the common cause failure with a probability greater than :math:`p`.
 
         Notes
         -----
-        The :math:`k_{max}` order is the minimal order such that the probability that at least :math:`k_{max}` failures occurs is greater than :math:`p`. Then :math:`k_{max}` is defined by: 
+        The :math:`k_{max}` multiplicity is the minimal  multipicity of the common cause failure such that the probability that at least :math:`k_{max}` failures occur is greater than :math:`p`. Then :math:`k_{max}` is defined by:
 
-        ..math::
-            :label:`kMaxDef`
-        
-            k_{max}(p) = \max \{ k |  \mbox{PTS}(k|n) > p \}
+        .. math::
+            :label: kMaxDef
 
-        The probability :math:`\mbox{PTS}(k|n)` is computing using (:eq:`PTS_red`).
+            k_{max}(p) = \\max \\{ k |  \\mbox{PTS}(k|n) > p \\}
 
+        The probability :math:`\\mbox{PTS}(k|n)` is computed using (:eq:`PTS_red`).
         """
 
         k=0
         while self.computePTS(k) > p:
             k+=1
-        return k-1              
+        return k-1
 
 
-    
+
     def computeAnalyseKMaxSample(self, p, blockSize, fileNameInput, fileNameRes):
         """
         Generates a :math:`k_{max}` sample and produces graphs to analyse it.
 
-        Parameter
-        ---------
-        p : float, :math:` 0 \leq p \leq 1`
+        Parameters
+        ----------
+        p : float, :math:` 0 \\leq p \\leq 1`
             The probability threshold.
 
-        blockSize : int,
-            The block size after which the sample is saved. 
+        blockSize : int
+            The block size after which the sample is saved.
 
-        fileNameInput: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
+        fileNameInput: string
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
 
-        fileNameRes: string,
-            The csv file that stores the sample of  :math:`k_{max}`.
-     defined by (:eq:`kMaxDef`).
+        fileNameRes: string
+            The csv file that stores the sample of  :math:`k_{max}` defined by (:eq:`kMaxDef`).
 
         Returns
         -------
-        kmax_graph :  :class:`~openturns.Graph`,
-            The empirical distribution of :math:`k_{max}`.
+        kmax_graph :  :class:`~openturns.Graph`
+            The empirical distribution of :math:`K_{max}`.
 
         Notes
         -----
-        The function calls the script script_bootstrap_KMax.py that uses the parallelisation of the pool object of the multiprocessing module. It creates a file :math:`myECLM.xml` that stores the total impact vector to be read by the script.
+        The function calls the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module. It creates a file *myECLM.xml* that stores the total impact vector to be read by the script.
 
-        The computation is saved in the csv file named fileNameRes every blocksize calculus. The computation can be interrupted: it will be restarted from the last filenameRes saved.
+        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
-        The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
+        The empirical distribution is fitted on the sample. The $90\\%$ confidence interval is given, computed from the empirical distribution.
         """
 
         myStudy = ot.Study('myECLM.xml')
+        myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.save()
 
         import os
+        directory_path = os.getcwd()
+        fileName = directory_path + "/script_bootstrap_KMax.py"
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        with open(fileName, "w") as f:
+            f.write("#############################\n"\
+"# Ce script :\n"\
+"#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
+"#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
+"#     - sauve le sample des grandeurs  probabilistes dans  le fichier fileNameRes (de type adresse/fichier.csv)\n"\
+"\n"\
+"\n"\
+"import openturns as ot\n"\
+"from otECLM import ECLM\n"\
+"\n"\
+"from time import time\n"\
+"import sys\n"\
+"\n"\
+"from multiprocessing import Pool\n"\
+"# barre de progression\n"\
+"import tqdm\n"\
+"\n"\
+"# Ot Parallelisme desactivated\n"\
+"ot.TBB.Disable()\n"\
+"\n"\
+"# seuil de PTS\n"\
+"p = float(sys.argv[1])\n"\
+"# taille des blocs\n"\
+"blockSize = int(sys.argv[2])\n"\
+"# Nom du fichier de contenant le sample des paramètres de Mankamo: de type adresse/fichier.csv\n"\
+"fileNameInput = str(sys.argv[3])\n"\
+"# Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
+"fileNameRes = str(sys.argv[4])\n"\
+"\n"\
+"print('Calcul des réalisations de KMax')\n"\
+"print('p, fileNameInput, fileNameRes = ', p, fileNameInput, fileNameRes)\n"\
+"\n"\
+"# Import de  vectImpactTotal\n"\
+"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy.load()\n"\
+"integrationAlgo = ot.IntegrationAlgorithm()\n"\
+"myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+"totalImpactVector = ot.Indices()\n"\
+"myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"\n"\
+"def job(inP):\n"\
+"    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+"    generalParameter = inP[4:9]\n"\
+"    myECLM.setGeneralParameter(generalParameter)\n"\
+"    kMax = myECLM.computeKMax_PTS(p)\n"\
+"    return [kMax]\n"\
+"\n"\
+"\n"\
+"Ndone = 0\n"\
+"block = 0\n"\
+"t00 = time()\n"\
+"\n"\
+"# Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+"# sauvé dans le fichier fileNameInput\n"\
+"sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
+"Nsample = sampleParam.getSize()\n"\
+"\n"\
+"\n"\
+"#  Si des calculs ont déjà été faits, on les importe:\n"\
+"try:\n"\
+"    print('[Kmax values] Try to import previous results from {}'.format(fileNameRes))\n"\
+"    allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    print('import ok')\n"\
+"except:\n"\
+"    # la dimension du sample est 1\n"\
+"    dim = 1\n"\
+"    allResults = ot.Sample(0, dim)\n"\
+"\n"\
+"\n"\
+"# Description\n"\
+"desc = ot.Description(['kMax'])\n"\
+"allResults.setDescription(desc)\n"\
+"\n"\
+"# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
+"Nskip = allResults.getSize()\n"\
+"remainder_sample = sampleParam.split(Nskip)\n"\
+"N_remainder = remainder_sample.getSize()\n"\
+"print('N_remainder = ', N_remainder)\n"\
+"while Ndone < N_remainder:\n"\
+"    block += 1\n"\
+"    # Nombre de calculs qui restent à faire\n"\
+"    size = min(blockSize, N_remainder - Ndone)\n"\
+"    print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', N_remainder)\n"\
+"    t0 = time()\n"\
+"    allInputs = [remainder_sample[(block-1)*blockSize + i] for i in range(size)]\n"\
+"    t1 = time()\n"\
+"    print('t=%.3g' % (t1 - t0), 's')\n"\
+"\n"\
+"    t0 = time()\n"\
+"    with Pool() as pool:\n"\
+"        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs), total=len(allInputs))))\n"\
+"    t1 = time()\n"\
+"    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
+"    Ndone += size\n"\
+"    # Sauvegarde apres chaque bloc\n"\
+"    allResults.exportToCSVFile(fileNameRes)")
+
         command =  'python script_bootstrap_KMax.py {} {} {} {}'.format(p, blockSize, fileNameInput, fileNameRes)
         os.system(command)
+        os.remove(fileName)
+        os.remove("myECLM.xml")
 
         # Loi KS
         sampleKmax = ot.Sample.ImportFromCSVFile(fileNameRes)
@@ -1560,11 +1779,139 @@ class ECLM(object):
         graph.setLegends(leg)
         graph.setLegendPosition('topright')
         graph.setXTitle(r'$k_{max}$')
-        graph.setTitle(r'Loi de $K_{max} = $' + 'argmax {k | PTS(k|'+ str(self.n) + r'$) \geq $'+ format(p,'.1E') + r'}')
+        graph.setTitle(r'Loi de $K_{max} = \arg \max \{k | PTS(k|$'+ str(self.n) + r'$) \geq $'+ format(p,'.1e') + r'$\}$')
 
         # IC à 90%
         print('Intervalle de confiance de niveau 90%: [',  UD_dist_KMax.computeQuantile(0.05)[0], ', ', UD_dist_KMax.computeQuantile(0.95)[0], ']')
 
         return graph
-    
-                        
+
+
+
+    def setTotalImpactVector(self, totalImpactVector):
+        """
+        Accessor to the total impact vector.
+
+        Parameters
+        ----------
+        totalImpactVector : :class:`~openturns.Indices`
+            The total impact vector of the common cause failure (CCF) group.
+        """
+
+        self.totalImpactVector = totalImpactVector
+
+
+    def setIntegrationAlgo(self, integrationAlgo):
+        """
+        Accessor to the integration algorithm.
+
+        Parameters
+        ----------
+        integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
+            The integration algorithm used to compute the integrals.
+        """
+
+        self.integrationAlgo = integrationAlgo
+
+
+    def setMankamoParameter(self, mankamoParameter):
+        """
+        Accessor to the Mankamo parameter.
+
+        Parameters
+        ----------
+        mankamoParameter : list of float
+            The Mankamo parameter (:eq:`MankamoParam`).
+        """
+
+        self.MankamoParameter = mankamoParameter
+
+
+    def setGeneralParameter(self, generalParameter):
+        """
+        Accessor to the general parameter.
+
+        Parameters
+        ----------
+        generalParameter : list of float
+            The general parameter  (:eq:`generalParam`).
+        """
+
+        self.generalParameter = generalParameter
+
+
+    def setN(self, n):
+        """
+        Accessor to the size of the CCF group :math:`n`.
+
+        Parameters
+        ----------
+        n : int
+            The CCF group size.
+        """
+
+        self.n = n
+
+
+    def getTotalImpactVector(self):
+        """
+        Accessor to the total impact vector.
+
+        Returns
+        -------
+        totalImpactVector : :class:`~openturns.Indices`
+            The total impact vector of the CCF group.
+        """
+
+        return self.totalImpactVector
+
+
+    def getIntegrationAlgorithm(self):
+        """
+        Accessor to the integration algorithm.
+
+        Returns
+        -------
+        integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
+            The integration algorithm used to compute the integrals.
+        """
+
+        return self.integrationAlgo
+
+
+    def getMankamoParameter(self):
+        """
+        Accessor to the Mankamo Parameter.
+
+        Returns
+        -------
+        mankamoParameter : :class:`~openturns.Point`
+            The Mankamo parameter (:eq:`MankamoParam`).
+        """
+
+        return self.MankamoParameter
+
+
+    def getGeneralParameter(self):
+        """
+        Accessor to the general parameter.
+
+        Returns
+        -------
+        generalParameter : list of foat
+            The general parameter defined in (:eq:`generalParam`).
+        """
+
+        return self.generalParameter
+
+    def getN(self):
+        """
+        Accessor to the CCF group size :math:`n`.
+
+        Returns
+        -------
+        n : int
+            The CCF group size :math:`n`.
+        """
+
+        return self.n
