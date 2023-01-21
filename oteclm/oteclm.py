@@ -3,7 +3,7 @@ import openturns as ot
 import math as math
 
 class ECLM(object):
-    """
+    r"""
     Provides a class for the Extended Common Load Model (ECLM).
 
     Parameters
@@ -19,61 +19,61 @@ class ECLM(object):
 
     We consider a common cause failure (CCF) group of :math:`n` components supposed to be independent and identical.
 
-    We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \\dots, R_n)` are independant and identically distributed according to :math:`R`.
+    We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \dots, R_n)` are independant and identically distributed according to :math:`R`.
 
     We assume that the load :math:`S` is modelled as a mixture of two normal distributions:
 
-        - the base part  with mean and variance :math:`(\\mu_b, \\sigma_b^2)`
-        - the extreme load parts  with mean and variance :math:`(\\mu_x, \\sigma_x^2)`
-        - the respective weights :math:`(\\pi, 1-\\pi)`.
+        - the base part  with mean and variance :math:`(\mu_b, \sigma_b^2)`
+        - the extreme load parts  with mean and variance :math:`(\mu_x, \sigma_x^2)`
+        - the respective weights :math:`(\pi, 1-\pi)`.
 
     Then the density of :math:`S` is written as:
 
     .. math::
 
-        f_S(s) = \\pi \\varphi \\left(\\dfrac{s-\\mu_b}{\\sigma_b}\\right) + (1-\\pi) \\varphi \\left(\\dfrac{s-\\mu_x}{\\sigma_x}\\right)\\quad \\forall s \\in \\mathbb{R}
+        f_S(s) = \pi \varphi \left(\dfrac{s-\mu_b}{\sigma_b}\right) + (1-\pi) \varphi \left(\dfrac{s-\mu_x}{\sigma_x}\right)\quad \forall s \in \mathbb{R}
 
-    We assume that the resistance :math:`R` is modelled as a normal distribution with  mean and variance :math:`(\\mu_R, \\sigma_R^2)`. We denote by :math:`p_R` and :math:`F_R` its density and its cumulative density function.
+    We assume that the resistance :math:`R` is modelled as a normal distribution with  mean and variance :math:`(\mu_R, \sigma_R^2)`. We denote by :math:`p_R` and :math:`F_R` its density and its cumulative density function.
 
-    We define the ECLM probabilities of a CCF group of size :math:`n`, for :math:`0 \\leq k \\leq n` are the following:
+    We define the ECLM probabilities of a CCF group of size :math:`n`, for :math:`0 \leq k \leq n` are the following:
 
-        - :math:`\\mbox{PSG}(k)`: probability that a  specific set of :math:`k` components fail.
-        - :math:`\\mbox{PEG}(k|n)`: probability that a specific set of :math:`k` components fail  while the other :math:`(n-k)` survive.
-        - :math:`\\mbox{PES}(k|n)`: probability that some set of :math:`k` components fail while the other :math:`(n-k)` survive.
-        - :math:`\\mbox{PTS}(k|n)`: probability that  at least some specific set of :math:`k` components fail.
+        - :math:`\mathrm{PSG}(k)`: probability that a  specific set of :math:`k` components fail.
+        - :math:`\mathrm{PEG}(k|n)`: probability that a specific set of :math:`k` components fail  while the other :math:`(n-k)` survive.
+        - :math:`\mathrm{PES}(k|n)`: probability that some set of :math:`k` components fail while the other :math:`(n-k)` survive.
+        - :math:`\mathrm{PTS}(k|n)`: probability that  at least some specific set of :math:`k` components fail.
 
 
-    Then the  :math:`\\mbox{PEG}(k|n)`  probabilities are defined as:
-
-    .. math::
-
-        \\begin{array}{rcl}
-          \\mbox{PEG}(k|n) & = & \\mathbb{P}\\left[S>R_1, \\dots, S>R_k, S<R_{k+1}, \\dots, S<R_n\\right] \\\\
-                          & = &  \\int_{s\\in  \\mathbb{R}} f_S(s) \\left[F_R(s)\\right]^k \\left[1-F_R(s)\\right]^{n-k} \\, ds
-        \\end{array}
-
-    and the  :math:`\\mbox{PSG}(k|n)` probabilities are defined as:
+    Then the  :math:`\mathrm{PEG}(k|n)`  probabilities are defined as:
 
     .. math::
 
-        \\begin{array}{rcl}
-          \\mbox{PSG}(k) & = & \\mathbb{P}\\left[S>R_1, \\dots, S>R_k\\right]\\\\
-                        & = &  \\int_{s\\in  \\mathbb{R}} f_S(s) \\left[F_R(s)\\right]^k\\, ds
-        \\end{array}
+        \begin{array}{rcl}
+          \mathrm{PEG}(k|n) & = & \mathbb{P}\left[S>R_1, \dots, S>R_k, S<R_{k+1}, \dots, S<R_n\right] \\
+                          & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k \left[1-F_R(s)\right]^{n-k} \, ds
+        \end{array}
 
-    We get the :math:`\\mbox{PES}(k|n)` probabilities and  :math:`\\mbox{PTS}(k|n)` with the relations:
+    and the  :math:`\mathrm{PSG}(k|n)` probabilities are defined as:
+
+    .. math::
+
+        \begin{array}{rcl}
+          \mathrm{PSG}(k) & = & \mathbb{P}\left[S>R_1, \dots, S>R_k\right]\\
+                        & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k\, ds
+        \end{array}
+
+    We get the :math:`\mathrm{PES}(k|n)` probabilities and  :math:`\mathrm{PTS}(k|n)` with the relations:
 
         .. math::
             :label: PES_red
 
-            \\mbox{PES}(k|n) = C_n^k \\, \\mbox{PEG}(k|n)
+            \mathrm{PES}(k|n) = C_n^k \, \mathrm{PEG}(k|n)
 
     and
 
         .. math::
             :label: PTS_red
 
-             \\mbox{PTS}(k|n) = \\sum_{i=k}^n  \\mbox{PES}(i|n)
+             \mathrm{PTS}(k|n) = \sum_{i=k}^n  \mathrm{PES}(i|n)
 
 
     We use the following set of parameters called *general parameter* :
@@ -81,46 +81,46 @@ class ECLM(object):
     .. math::
         :label: generalParam
 
-        (\\pi, d_b, d_x, d_R, y_{xm})
+        (\pi, d_b, d_x, d_R, y_{xm})
 
     defined by:
 
     .. math::
 
-        \\begin{array}{rcl}
-         d_{b} & = & \\dfrac{\\sigma_b}{\\mu_R-\\mu_b}\\\\
-         d_{x} & = & \\dfrac{\\sigma_x}{\\mu_R-\\mu_b}\\\\
-         d_{R} & = & \\dfrac{\\sigma_R}{\\mu_R-\\mu_b}\\\\
-         y_{xm} & = & \\dfrac{\\mu_x-\\mu_b}{\\mu_R-\\mu_b}
-        \\end{array}
+        \begin{array}{rcl}
+         d_{b} & = & \dfrac{\sigma_b}{\mu_R-\mu_b}\\
+         d_{x} & = & \dfrac{\sigma_x}{\mu_R-\mu_b}\\
+         d_{R} & = & \dfrac{\sigma_R}{\mu_R-\mu_b}\\
+         y_{xm} & = & \dfrac{\mu_x-\mu_b}{\mu_R-\mu_b}
+        \end{array}
 
-    Then the  :math:`\\mbox{PEG}(k|n)` probabilities are written as:
+    Then the  :math:`\mathrm{PEG}(k|n)` probabilities are written as:
 
     .. math::
         :label: PEG_red
 
-             \\mbox{PEG}(k|n)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k \\left[1-\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^{n-k} \\, dy
+             \mathrm{PEG}(k|n)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k \left[1-\Phi\left(\dfrac{y-1}{d_R}\right)\right]^{n-k} \, dy
 
-    And the  :math:`\\mbox{PSG}(k|n)` probabilities are written as:
+    And the  :math:`\mathrm{PSG}(k|n)` probabilities are written as:
 
     .. math::
         :label: PSG_red
 
-        \\mbox{PSG}(k)  =    \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right] \\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right]^k  \\, dy
+        \mathrm{PSG}(k)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
 
     Note that for :math:`k=1`, the integral can be computed explicitly:
 
     .. math::
         :label: PSG1_red
 
-        \\begin{array}{lcl}
-           PSG(1) & = & \\displaystyle \\int_{-\\infty}^{+\\infty}\\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) \\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy +  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-                 & = & \\pi \\left[1-\\Phi\\left(\\dfrac{1}{\\sqrt{d_b^2+d_R^2}}\\right)\\right] +  (1-\\pi) \\left[1-\\Phi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]
-        \\end{array}
+        \begin{array}{lcl}
+           PSG(1) & = & \displaystyle \int_{-\infty}^{+\infty}\left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) \right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy +  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
+                 & = & \pi \left[1-\Phi\left(\dfrac{1}{\sqrt{d_b^2+d_R^2}}\right)\right] +  (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]
+        \end{array}
 
-    The computation of the :math:`\\mbox{PEG}(k|n)`  and :math:`\\mbox{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
+    The computation of the :math:`\mathrm{PEG}(k|n)`  and :math:`\mathrm{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
 
-    The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`k` for :math:`0 \\leq k \\leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \\sum_{k=0}^n V_t^{n,N}[k]`.
+    The data is the total impact vector :math:`V_t^{n,N}` of the CCF group. The component :math:`k` for :math:`0 \leq k \leq n` is the number of failure events of multiplicity :math:`k` in the CCF group. In addition, :math:`N` is the number of tests and demands on the whole group. Then we have :math:`N = \sum_{k=0}^n V_t^{n,N}[k]`.
 
     **Estimation method proposed by Mankamo:**
 
@@ -129,12 +129,12 @@ class ECLM(object):
     .. math::
         :label: Param2
 
-        \\begin{array}{rcl}
-             P_t & = & \\mbox{PSG}(1) = \\displaystyle  \\int_{-\\infty}^{+\\infty} \\left[ \\dfrac{\\pi}{d_b} \\varphi \\left(\\dfrac{y}{d_b}\\right) +  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy \\\\
-             P_x &  = &\\displaystyle  \\int_{-\\infty}^{+\\infty} \\left[  \\dfrac{(1-\\pi)}{d_x}\\varphi \\left(\\dfrac{y-y_{xm}}{d_x}\\right)\\right]\\left[\\Phi\\left(\\dfrac{y-1}{d_R}\\right)\\right] \\, dy = (1-\\pi) \\left[1-\\Phi\\left(\\dfrac{1-y_{xm}}{\\sqrt{d_x^2+d_R^2}}\\right)\\right]\\\\
-             c_{co} & = & \\dfrac{d_b^2}{d_b^2+d_R^2}\\\\
-             c_x & = & \\dfrac{d_x^2}{d_x^2+d_R^2}
-        \\end{array}
+        \begin{array}{rcl}
+             P_t & = & \mathrm{PSG}(1) = \displaystyle  \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy \\
+             P_x &  = &\displaystyle  \int_{-\infty}^{+\infty} \left[  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right]\left[\Phi\left(\dfrac{y-1}{d_R}\right)\right] \, dy = (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]\\
+             c_{co} & = & \dfrac{d_b^2}{d_b^2+d_R^2}\\
+             c_x & = & \dfrac{d_x^2}{d_x^2+d_R^2}
+        \end{array}
 
     Mankamo assumes that:
 
@@ -144,17 +144,17 @@ class ECLM(object):
         y_{xm} = 1-d_R
 
 
-    This assumption means that :math:`\\mu_R = \\mu_x+\\sigma_R`. Then equations :eq:`Param2` simplifies and we get:
+    This assumption means that :math:`\mu_R = \mu_x+\sigma_R`. Then equations :eq:`Param2` simplifies and we get:
 
     .. math::
         :label: Param2to1Mankamo
 
-        \\begin{array}{rcl}
-            (1-\\pi) & = & -\\dfrac{P_x}{\\Phi\\left(\\sqrt{1-c_{x}}\\right)}\\\\
-            d_b & = & -\\dfrac{\\sqrt{c_{co}}}{\\Phi^{-1}\\left(\\dfrac{P_t-P_x}{\\pi} \\right)}\\\\
-            d_R  & = & -\\dfrac{\\sqrt{1-c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
-            d_x  & = & d_R \\sqrt{\\dfrac{c_{x}}{1-c_{x}}}
-        \\end{array}
+        \begin{array}{rcl}
+            (1-\pi) & = & -\dfrac{P_x}{\Phi\left(\sqrt{1-c_{x}}\right)}\\
+            d_b & = & -\dfrac{\sqrt{c_{co}}}{\Phi^{-1}\left(\dfrac{P_t-P_x}{\pi} \right)}\\
+            d_R  & = & -\dfrac{\sqrt{1-c_{co}}}{\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} \\
+            d_x  & = & d_R \sqrt{\dfrac{c_{x}}{1-c_{x}}}
+        \end{array}
 
     We call *Mankamo parameter* the set:
 
@@ -168,45 +168,45 @@ class ECLM(object):
     .. math::
         :label: eqPt
 
-         \\hat{P}_t = \\sum_{i=1}^n\\dfrac{iV_t^{n,N}[i]}{nN}
+         \hat{P}_t = \sum_{i=1}^n\dfrac{iV_t^{n,N}[i]}{nN}
 
 
     The likelihood of the model is written with respect to the total impact vector :math:`V_t^{n,N}` and the set of parameters :math:`(P_x, C_{co}, C_x)` :
 
     .. math::
 
-         \\log \\mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N}) = \\sum_{k=0}^n V_t^{n,N}[k] \\log \\mbox{PEG}(k|n)
+         \log \mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N}) = \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
 
     Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model:
 
     .. math::
         :label: optimMankamo
 
-         (P_x, C_{co}, C_x)_{optim}  = \\arg \\max_{(P_x, C_{co}, C_x)} \\log \\mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N})
+         (P_x, C_{co}, C_x)_{optim}  = \arg \max_{(P_x, C_{co}, C_x)} \log \mathcal{L}((P_x, C_{co}, C_x)|V_t^{n,N})
 
     The optimization is done under the following constraints:
 
     .. math::
 
-        \\begin{array}{l}
-             0 \\leq P_x  \\leq P_t \\\\
-             0 \\leq c_{co} \\leq c_{x} \\leq 1 \\\\
-             0 \\leq 1-\\pi = \\dfrac{P_x}{\\Phi\\left(- \\sqrt{1-c_{x}}\\right)}\\leq 1 \\\\
-             0 \\leq d_b = -\\dfrac{\\sqrt{c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)} \\\\
-              0 \\leq  d_R   = -\\dfrac{\\sqrt{1-c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
-        \\end{array}
+        \begin{array}{l}
+             0 \leq P_x  \leq P_t \\
+             0 \leq c_{co} \leq c_{x} \leq 1 \\
+             0 \leq 1-\pi = \dfrac{P_x}{\Phi\left(- \sqrt{1-c_{x}}\right)}\leq 1 \\
+             0 \leq d_b = -\dfrac{\sqrt{c_{co}}}{\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} \\
+              0 \leq  d_R   = -\dfrac{\sqrt{1-c_{co}}}{\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)}
+        \end{array}
 
-    Assuming that :math:`P_t \\leq \\frac{1}{2}`, we can write the constraints as:
+    Assuming that :math:`P_t \leq \frac{1}{2}`, we can write the constraints as:
 
     .. math::
         :label: MankamoConstraints
 
-        \\begin{array}{l}
-            0\\leq  P_t \\leq \\dfrac{1}{2}\\\\
-            0 \\leq P_x  \\leq \\min \\left \\{P_t, \\left (P_t-\\dfrac{1}{2}\\right ) \\left(
-            1-\\dfrac{1}{2\\Phi\\left(-\\sqrt{1-c_{x}}\\right)}\\right)^{-1},  \\Phi\\left(- \\sqrt{1-c_{x}}\\right) \\right \\} \\\\
-            0 \\leq c_{co} \\leq c_{x} \\leq 1 
-        \\end{array}
+        \begin{array}{l}
+            0\leq  P_t \leq \dfrac{1}{2}\\
+            0 \leq P_x  \leq \min \left \{P_t, \left (P_t-\dfrac{1}{2}\right ) \left(
+            1-\dfrac{1}{2\Phi\left(-\sqrt{1-c_{x}}\right)}\right)^{-1},  \Phi\left(- \sqrt{1-c_{x}}\right) \right \} \\
+            0 \leq c_{co} \leq c_{x} \leq 1 
+        \end{array}
     """
 
     def __init__(self, totalImpactVector, integrationAlgo):
@@ -230,7 +230,7 @@ class ECLM(object):
 
 
     def verifyMankamoConstraints(self, X):
-        """
+        r"""
         Verifies if the point :math:`(P_x, C_{co}, C_x)` verifies the constraints.
 
         Parameters
@@ -268,7 +268,7 @@ class ECLM(object):
     
 
     def computeValidMankamoStartingPoint(self, Cx, verbose=False):
-        """
+        r"""
         Gives a point :math:`(P_x, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
 
         Parameters
@@ -305,7 +305,7 @@ class ECLM(object):
 
 
     def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
-        """
+        r"""
         Estimates the maximum likelihood (general and Mankamo) parameters under the Mankamo assumption.
 
         Parameters
@@ -320,7 +320,7 @@ class ECLM(object):
         Returns
         -------
         paramList : :class:`~openturns.Point`
-            The optimal point :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
+            The optimal point :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
         finalLogLikValue : float
             The value of the log-likelihood function at the optimal point.
         graphList : list of :class:`~openturns.Graph`
@@ -580,7 +580,7 @@ class ECLM(object):
         return mankamoParam, generalParam, finalLogLikValue, [g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx]
 
     def computeGeneralParamFromMankamo(self, mankamoParam):
-        """
+        r"""
         Computes the general parameter from the Mankamo parameter  under the Mankamo assumption.
 
         Parameters
@@ -610,22 +610,22 @@ class ECLM(object):
 
 
     def computePEG(self, k):
-        """
-        Computes the :math:`\\mbox{PEG}(k|n)` probability.
+        r"""
+        Computes the :math:`\mathrm{PEG}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \\leq k \\leq n`
+        k : int, :math:`0 \leq k \leq n`
             Multiplicity of the common cause failure event.
 
         Returns
         -------
-        peg_kn : float,  :math:`0 \\leq  \\mbox{PEG}(k|n) \\leq 1`
-            The :math:`\\mbox{PEG}(k|n)` probability.
+        peg_kn : float,  :math:`0 \leq  \mathrm{PEG}(k|n) \leq 1`
+            The :math:`\mathrm{PEG}(k|n)` probability.
 
         Notes
         -----
-        The  :math:`\\mbox{PEG}(k|n)` probability is computed using :eq:`PEG_red`.
+        The  :math:`\mathrm{PEG}(k|n)` probability is computed using :eq:`PEG_red`.
         """
 
         if self.generalParameter is None:
@@ -681,17 +681,17 @@ class ECLM(object):
 
 
     def  computePEGall(self):
-        """
-        Computes all the :math:`\\mbox{PEG}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+        r"""
+        Computes all the :math:`\mathrm{PEG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
         Returns
         -------
-        peg_list : seq of float,  :math:`0 \\leq  \\mbox{PEG}(k|n) \\leq 1`
-            The :math:`\\mbox{PEG}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
+        peg_list : seq of float,  :math:`0 \leq  \mathrm{PEG}(k|n) \leq 1`
+            The :math:`\mathrm{PEG}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
 
         Notes
         -----
-        All the  :math:`\\mbox{PEG}(k|n)` probabilities are computed using :eq:`PEG_red`.
+        All the  :math:`\mathrm{PEG}(k|n)` probabilities are computed using :eq:`PEG_red`.
         """
 
         PEG_list = list()
@@ -701,17 +701,17 @@ class ECLM(object):
 
 
     def computePSG1(self):
-        """
-        Computes the :math:`\\mbox{PSG}(1|n)` probability.
+        r"""
+        Computes the :math:`\mathrm{PSG}(1|n)` probability.
 
         Returns
         -------
-        psg_1n : float,  :math:`0 \\leq  \\mbox{PSG}(1|n) \\leq 1`
-            The :math:`\\mbox{PSG}(1|n)`  probability.
+        psg_1n : float,  :math:`0 \leq  \mathrm{PSG}(1|n) \leq 1`
+            The :math:`\mathrm{PSG}(1|n)`  probability.
 
         Notes
         -----
-        The  :math:`\\mbox{PSG}(1|n)` probability is computed using :eq:`PSG1_red`.
+        The  :math:`\mathrm{PSG}(1|n)` probability is computed using :eq:`PSG1_red`.
         """
 
         if self.generalParameter is None:
@@ -730,22 +730,22 @@ class ECLM(object):
 
 
     def computePSG(self, k):
-        """
-        Computes the :math:`\\mbox{PSG}(k|n)` probability.
+        r"""
+        Computes the :math:`\mathrm{PSG}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \\leq k \\leq n`
+        k : int, :math:`0 \leq k \leq n`
             Multiplicity of the common cause failure event.
 
         Returns
         -------
-        psg_kn : float,  :math:`0 \\leq  \\mbox{PSG}(k|n) \\leq 1`
-            The :math:`\\mbox{PSG}(k|n)`  probability.
+        psg_kn : float,  :math:`0 \leq  \mathrm{PSG}(k|n) \leq 1`
+            The :math:`\mathrm{PSG}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\\mbox{PSG}(k|n)` probability is computed using :eq:`PSG_red` for :math:`k !=1` and using :eq:`PSG1_red` for :math:`k=1`.
+        The  :math:`\mathrm{PSG}(k|n)` probability is computed using :eq:`PSG_red` for :math:`k !=1` and using :eq:`PSG1_red` for :math:`k=1`.
         """
 
         if self.generalParameter is None:
@@ -801,17 +801,17 @@ class ECLM(object):
         return PSG
 
     def  computePSGall(self):
-        """
-        Computes all the :math:`\\mbox{PSG}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+        r"""
+        Computes all the :math:`\mathrm{PSG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
         Returns
         -------
-        psg_list : seq of float,  :math:`0 \\leq  \\mbox{PSG}(k|n) \\leq 1`
-            The :math:`\\mbox{PSG}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
+        psg_list : seq of float,  :math:`0 \leq  \mathrm{PSG}(k|n) \leq 1`
+            The :math:`\mathrm{PSG}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
 
         Notes
         -----
-        All the  :math:`\\mbox{PSG}(k|n)` probabilities are computed using :eq:`PSG_red` for :math:`k != 1` and :eq:`PSG1_red` for :math:`k = 1`.
+        All the  :math:`\mathrm{PSG}(k|n)` probabilities are computed using :eq:`PSG_red` for :math:`k != 1` and :eq:`PSG1_red` for :math:`k = 1`.
         """
 
         PSG_list = list()
@@ -821,22 +821,22 @@ class ECLM(object):
 
 
     def computePES(self, k):
-        """
-        Computes the :math:`\\mbox{PES}(k|n)` probability.
+        r"""
+        Computes the :math:`\mathrm{PES}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \\leq k \\leq n`
+        k : int, :math:`0 \leq k \leq n`
             Multiplicity of the failure event.
 
         Returns
         -------
-        pes_kn : float,  :math:`0 \\leq  \\mbox{PES}(k|n) \\leq 1`
-            The :math:`\\mbox{PES}(k|n)`  probability.
+        pes_kn : float,  :math:`0 \leq  \mathrm{PES}(k|n) \leq 1`
+            The :math:`\mathrm{PES}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\\mbox{PES}(k|n)` probability is computed using  :eq:`PES_red`.
+        The  :math:`\mathrm{PES}(k|n)` probability is computed using  :eq:`PES_red`.
         """
 
         if self.generalParameter is None:
@@ -850,17 +850,17 @@ class ECLM(object):
 
 
     def  computePESall(self):
-        """
-        Computes all the :math:`\\mbox{PES}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+        r"""
+        Computes all the :math:`\mathrm{PES}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
         Returns
         -------
-        pes_list : seq of float,  :math:`0 \\leq  \\mbox{PES}(k|n) \\leq 1`
-            The :math:`\\mbox{PES}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
+        pes_list : seq of float,  :math:`0 \leq  \mathrm{PES}(k|n) \leq 1`
+            The :math:`\mathrm{PES}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
 
         Notes
         -----
-        All the  :math:`\\mbox{PES}(k|n)` probabilities are computed using :eq:`PES_red`.
+        All the  :math:`\mathrm{PES}(k|n)` probabilities are computed using :eq:`PES_red`.
         """
 
         PES_list = list()
@@ -870,22 +870,22 @@ class ECLM(object):
 
 
     def computePTS(self, k):
-        """
-        Computes the :math:`\\mbox{PTS}(k|n)` probability.
+        r"""
+        Computes the :math:`\mathrm{PTS}(k|n)` probability.
 
         Parameters
         ----------
-        k : int, :math:`0 \\leq k \\leq n`
+        k : int, :math:`0 \leq k \leq n`
             Multiplicity of the common cause failure event.
 
         Returns
         -------
-        pts_kn : float,  :math:`0 \\leq  \\mbox{PTS}(k|n) \\leq 1`
-            The :math:`\\mbox{PTS}(k|n)`  probability.
+        pts_kn : float,  :math:`0 \leq  \mathrm{PTS}(k|n) \leq 1`
+            The :math:`\mathrm{PTS}(k|n)`  probability.
 
         Notes
         -----
-        The  :math:`\\mbox{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\\mbox{PES}(i|n)` probability is computed using :eq:`PES_red`.
+        The  :math:`\mathrm{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\mathrm{PES}(i|n)` probability is computed using :eq:`PES_red`.
         """
 
 
@@ -897,17 +897,17 @@ class ECLM(object):
 
 
     def  computePTSall(self):
-        """
-        Computes all the :math:`\\mbox{PTS}(k|n)` probabilities for :math:`0 \\leq k \\leq n`.
+        r"""
+        Computes all the :math:`\mathrm{PTS}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
         Returns
         -------
-        pts_list : seq of float,  :math:`0 \\leq  \\mbox{PTS}(k|n) \\leq 1`
-            The :math:`\\mbox{PTS}(k|n)`  probabilities for :math:`0 \\leq k \\leq n`.
+        pts_list : seq of float,  :math:`0 \leq  \mathrm{PTS}(k|n) \leq 1`
+            The :math:`\mathrm{PTS}(k|n)`  probabilities for :math:`0 \leq k \leq n`.
 
         Notes
         -----
-        All the  :math:`\\mbox{PTS}(k|n)` probabilities are computed using :eq:`PSG_red`.
+        All the  :math:`\mathrm{PTS}(k|n)` probabilities are computed using :eq:`PSG_red`.
         """
 
         PTS_list = list()
@@ -917,7 +917,7 @@ class ECLM(object):
 
 
     def estimateBootstrapParamSampleFromMankamo(self, Nb, startingPoint, blockSize, fileNameRes):
-        """
+        r"""
         Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
 
         Parameters
@@ -929,11 +929,11 @@ class ECLM(object):
         blockSize : int,
             The block size after which the sample is saved.
         fileNameRes: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption :eq:`mankamoHyp`.
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption :eq:`mankamoHyp`.
 
         Notes
         -----
-        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\\dots, p_n^{emp}]` where :math:`p_k^{emp} = \\dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
+        The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\dots, p_n^{emp}]` where :math:`p_k^{emp} = \dfrac{V_t^{n,N}[k]}{nN}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
 
         The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
@@ -978,7 +978,7 @@ class ECLM(object):
 "Nbootstrap = int(sys.argv[1])\n"\
 "# taille des blocs\n"\
 "blockSize = int(sys.argv[2])\n"\
-"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})\n"\
+"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
 "fileNameRes = str(sys.argv[3])\n"\
 "\n"\
 "print('boostrap param : ')\n"\
@@ -1064,7 +1064,7 @@ class ECLM(object):
 
 
     def computeECLMProbabilitiesFromMankano(self, blockSize, fileNameInput, fileNameRes):
-        """
+        r"""
         Computes the sample of all the ECLM probabilities from a sample of Mankamo parameters using the Mankamo assumption.
 
         Parameters
@@ -1072,13 +1072,13 @@ class ECLM(object):
         blockSize : int,
             The block size after which the sample is saved.
         fileNameInput: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
         fileNameRes: string,
             The csv file that stores the ECLM probabilities.
 
         Notes
         -----
-        The ECLM probabilities are computed using the Mankamo assumption :eq:`mankamoHyp`. They are returned according to the order :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))` using equations :eq:`PEG_red`, :eq:`PSG_red`, :eq:`PES_red`, :eq:`PTS_red`, using the Mankamo assumption :eq:`mankamoHyp`.
+        The ECLM probabilities are computed using the Mankamo assumption :eq:`mankamoHyp`. They are returned according to the order :math:`(\mathrm{PEG}(0|n), \dots, \mathrm{PEG}(n|n), \mathrm{PSG}(0|n), \dots, \mathrm{PSG}(n|n), \mathrm{PES}(0|n), \dots, \mathrm{PES}(n|n), \mathrm{PTS}(0|n), \dots, \mathrm{PTS}(n|n))` using equations :eq:`PEG_red`, :eq:`PSG_red`, :eq:`PES_red`, :eq:`PTS_red`, using the Mankamo assumption :eq:`mankamoHyp`.
 
         The function generates the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
@@ -1122,7 +1122,7 @@ class ECLM(object):
 "n = int(sys.argv[1])\n"\
 "# taille des blocs\n"\
 "blockSize = int(sys.argv[2])\n"\
-"# Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})\n"\
+"# Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
 "fileNameInput = str(sys.argv[3])\n"\
 "# Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
 "fileNameRes = str(sys.argv[4])\n"\
@@ -1219,13 +1219,13 @@ class ECLM(object):
 
 
     def analyseGraphsECLMParam(self, fileNameSample):
-        """
+        r"""
         Produces graphs to analyse a sample of (Mankamo and general) parameters.
 
         Parameters
         ----------
         fileNameSample: string,
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
 
         Returns
         -------
@@ -1280,7 +1280,7 @@ class ECLM(object):
 
 
     def analyseGraphsECLMProbabilities(self, fileNameSample, kMax):
-        """
+        r"""
         Produces graphs to analyse a sample of all the ECLM probabilities.
 
         Parameters
@@ -1288,7 +1288,7 @@ class ECLM(object):
         fileNameSample: string
             The csv file that stores the ECLM probabilities.
 
-        kMax : int, :math:`0 \\leq k_{max} \\leq n`
+        kMax : int, :math:`0 \leq k_{max} \leq n`
             The maximal multiplicity of the common cause failure.
 
         Returns
@@ -1297,19 +1297,19 @@ class ECLM(object):
             The Pairs graph of the ECLM probabilities.
 
         graphPEG_PES_PTS_list : list of :class:`~openturns.Graph`
-            The Pairs graph of the probabilities :math:`(\\mbox{PEG}(k|n),\\mbox{PES}(k|n), \\mbox{PTS}(k|n))` for :math:`0 \\leq k \\leq k_{max}`.
+            The Pairs graph of the probabilities :math:`(\mathrm{PEG}(k|n),\mathrm{PES}(k|n), \mathrm{PTS}(k|n))` for :math:`0 \leq k \leq k_{max}`.
 
         graphMargPEG_list : list of :class:`~openturns.Graph`
-            The list of the marginal pdf of the  :math:`\\mbox{PEG}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+            The list of the marginal pdf of the  :math:`\mathrm{PEG}(k|n)` probabilities  for :math:`0 \leq k \leq k_{max}`.
 
         graphMargPSG_list : list of :class:`~openturns.Graph`
-            The list of the marginal pdf of the  :math:`\\mbox{PSG}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+            The list of the marginal pdf of the  :math:`\mathrm{PSG}(k|n)` probabilities  for :math:`0 \leq k \leq k_{max}`.
 
         graphMargPES_list : list of :class:`~openturns.Graph`
-            The list of the marginal pdf of the  :math:`\\mbox{PES}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+            The list of the marginal pdf of the  :math:`\mathrm{PES}(k|n)` probabilities  for :math:`0 \leq k \leq k_{max}`.
 
         graphMargPTS_list : list of :class:`~openturns.Graph`
-            The list of the marginal pdf of the  :math:`\\mbox{PTS}(k|n)` probabilities  for :math:`0 \\leq k \\leq k_{max}`.
+            The list of the marginal pdf of the  :math:`\mathrm{PTS}(k|n)` probabilities  for :math:`0 \leq k \leq k_{max}`.
 
         desc_list: :class:`~openturns.Description`
             Description of each graph.
@@ -1455,16 +1455,16 @@ class ECLM(object):
 
 
     def analyseDistECLMProbabilities(self, fileNameSample, kMax, confidenceLevel, factoryColl):
-        """
+        r"""
         Fits  distribution on ECL probabilities sample.
 
         Parameters
         ----------
         fileNameSample: string
             The csv file that stores the sample of all the ECLM probabilities.
-        kMax : int, :math:`0 \\leq k_{max} \\leq 1`
+        kMax : int, :math:`0 \leq k_{max} \leq 1`
             The maximal multipicity of the common cause failure.
-        confidenceLevel : float, :math:`0 \\leq confidenceLevel \\leq 1`
+        confidenceLevel : float, :math:`0 \leq confidenceLevel \leq 1`
             The confidence level of each interval.
         factoryCollection : list of :class:`~openturns.DistributionFactory`
             List of factories that will be used to fit a distribution to the sample.
@@ -1480,7 +1480,7 @@ class ECLM(object):
 
         Notes
         -----
-        The confidence intervals and the graphs illustrating the fitting are given according to the following order:  :math:`(\\mbox{PEG}(0|n), \\dots, \\mbox{PEG}(n|n), \\mbox{PSG}(0|n), \\dots, \\mbox{PSG}(n|n), \\mbox{PES}(0|n), \\dots, \\mbox{PES}(n|n), \\mbox{PTS}(0|n), \\dots, \\mbox{PTS}(n|n))`.
+        The confidence intervals and the graphs illustrating the fitting are given according to the following order:  :math:`(\mathrm{PEG}(0|n), \dots, \mathrm{PEG}(n|n), \mathrm{PSG}(0|n), \dots, \mathrm{PSG}(n|n), \mathrm{PES}(0|n), \dots, \mathrm{PES}(n|n), \mathrm{PTS}(0|n), \dots, \mathrm{PTS}(n|n))`.
         Each fitting is tested using the Lilliefors test. The result is printed and the best model among the list of factories is given. Care: it is not guaranted that the best model be accepted by the Lilliefors test.
         """
 
@@ -1655,12 +1655,12 @@ class ECLM(object):
 
 
     def computeKMaxPTS(self, p):
-        """
+        r"""
         Computes the minimal  multipicity of the common cause failure with a probability greater than a given threshold.
 
         Parameters
         ----------
-        p : float, :math:` 0 \\leq p \\leq 1`
+        p : float, :math:` 0 \leq p \leq 1`
             The probability threshold.
 
         Returns
@@ -1675,9 +1675,9 @@ class ECLM(object):
         .. math::
             :label: kMaxDef
 
-            k_{max}(p) = \\max \\{ k |  \\mbox{PTS}(k|n) > p \\}
+            k_{max}(p) = \max \{ k |  \mathrm{PTS}(k|n) > p \}
 
-        The probability :math:`\\mbox{PTS}(k|n)` is computed using :eq:`PTS_red`.
+        The probability :math:`\mathrm{PTS}(k|n)` is computed using :eq:`PTS_red`.
         """
 
         k=0
@@ -1688,19 +1688,19 @@ class ECLM(object):
 
 
     def computeAnalyseKMaxSample(self, p, blockSize, fileNameInput, fileNameRes):
-        """
+        r"""
         Generates a :math:`k_{max}` sample and produces graphs to analyse it.
 
         Parameters
         ----------
-        p : float, :math:` 0 \\leq p \\leq 1`
+        p : float, :math:` 0 \leq p \leq 1`
             The probability threshold.
 
         blockSize : int
             The block size after which the sample is saved.
 
         fileNameInput: string
-            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \\pi, d_b, d_x, d_R, y_{xm})`.
+            The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
 
         fileNameRes: string
             The csv file that stores the sample of  :math:`k_{max}` defined by :eq:`kMaxDef`.
@@ -1716,7 +1716,7 @@ class ECLM(object):
 
         The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
-        The empirical distribution is fitted on the sample. The $90\\%$ confidence interval is given, computed from the empirical distribution.
+        The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
         """
 
         myStudy = ot.Study('myECLM.xml')
@@ -1856,7 +1856,7 @@ class ECLM(object):
 
 
     def setTotalImpactVector(self, totalImpactVector):
-        """
+        r"""
         Accessor to the total impact vector.
 
         Parameters
@@ -1869,7 +1869,7 @@ class ECLM(object):
 
 
     def setIntegrationAlgo(self, integrationAlgo):
-        """
+        r"""
         Accessor to the integration algorithm.
 
         Parameters
@@ -1882,7 +1882,7 @@ class ECLM(object):
 
 
     def setMankamoParameter(self, mankamoParameter):
-        """
+        r"""
         Accessor to the Mankamo parameter.
 
         Parameters
@@ -1895,7 +1895,7 @@ class ECLM(object):
 
 
     def setGeneralParameter(self, generalParameter):
-        """
+        r"""
         Accessor to the general parameter.
 
         Parameters
@@ -1908,7 +1908,7 @@ class ECLM(object):
 
 
     def setN(self, n):
-        """
+        r"""
         Accessor to the size of the CCF group :math:`n`.
 
         Parameters
@@ -1921,7 +1921,7 @@ class ECLM(object):
 
 
     def setPt(self, Pt):
-        """
+        r"""
         Accessor to the probability :math:`P_t`.
 
         Parameters
@@ -1934,7 +1934,7 @@ class ECLM(object):
 
 
     def getTotalImpactVector(self):
-        """
+        r"""
         Accessor to the total impact vector.
 
         Returns
@@ -1947,7 +1947,7 @@ class ECLM(object):
 
 
     def getIntegrationAlgorithm(self):
-        """
+        r"""
         Accessor to the integration algorithm.
 
         Returns
@@ -1960,7 +1960,7 @@ class ECLM(object):
 
 
     def getMankamoParameter(self):
-        """
+        r"""
         Accessor to the Mankamo Parameter.
 
         Returns
@@ -1973,7 +1973,7 @@ class ECLM(object):
 
 
     def getGeneralParameter(self):
-        """
+        r"""
         Accessor to the general parameter.
 
         Returns
@@ -1985,7 +1985,7 @@ class ECLM(object):
         return self.generalParameter
 
     def getN(self):
-        """
+        r"""
         Accessor to the CCF group size :math:`n`.
 
         Returns
@@ -1997,7 +1997,7 @@ class ECLM(object):
         return self.n
 
     def getPt(self):
-        """
+        r"""
         Accessor to the the probability :math:`P_t`.
 
         Returns
