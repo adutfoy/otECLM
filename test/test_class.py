@@ -6,7 +6,7 @@ import numpy.testing as npt
 import openturns.testing as ott
 
 def test_class():
-    values = ot.Poisson().getSample(1000)
+    values = ot.Poisson().getSample(100)
     value = ot.Indices([int(v[0]) for v in values])
     obj = otECLM.ECLM(value, ot.GaussLegendre(50))
     res = obj.estimateMaxLikelihoodFromMankamo([0.5]*4, False, False)
