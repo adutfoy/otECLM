@@ -77,7 +77,7 @@ gl = ot.GridLayout(2,3)
 for i in range(6):
     gl.setGraph(i//3, i%3, graphesCol[i])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 # ==============================
@@ -139,11 +139,11 @@ graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam = myEC
 
 # %%
 view = View(graphPairsMankamoParam)
-plt.show()
+view.show()
 
 # %%
 view = View(graphPairsGeneralParam)
-plt.show()
+view.show()
 
 # We estimate the distribution of each parameter with a Histogram and a normal kernel smoothing.
 
@@ -152,7 +152,7 @@ gl = ot.GridLayout(3,3)
 for k in range(len(graphMarg_list)):
     gl.setGraph(k//3, k%3, graphMarg_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 # ==================================================================
@@ -176,26 +176,26 @@ descMargPTS = desc_list[5]
 
 # %%
 view = View(graphPairs_list[0])
-plt.show()
+view.show()
 
 # %%
 view = View(graphPairs_list[1])
-plt.show()
+view.show()
 
 # %%
 view = View(graphPairs_list[2])
-plt.show()
+view.show()
 
 # %%
 view = View(graphPairs_list[3])
-plt.show()
+view.show()
 
 # %%
 # Fix a k <=kMax
 
 k = 0
 view = View(graphPEG_PES_PTS_list[k])
-plt.show()
+view.show()
 
 # %%
 len(graphMargPEG_list)
@@ -203,28 +203,28 @@ gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPEG_list)):
     gl.setGraph(k//3, k%3, graphMargPEG_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPSG_list)):
     gl.setGraph(k//3, k%3, graphMargPSG_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPES_list)):
     gl.setGraph(k//3, k%3, graphMargPES_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPTS_list)):
     gl.setGraph(k//3, k%3, graphMargPTS_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 # ============================================
@@ -263,28 +263,28 @@ gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPEG_list)):
     gl.setGraph(k//3, k%3, graphMargPEG_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPSG_list)):
     gl.setGraph(k//3, k%3, graphMargPSG_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPES_list)):
         gl.setGraph(k//3, k%3, graphMargPES_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 gl = ot.GridLayout(2,3)
 for k in range(len(graphMargPTS_list)):
     gl.setGraph(k//3, k%3, graphMargPTS_list[k])
 view = View(gl)
-plt.show()
+view.show()
 
 # %%
 # ====================================================================================
@@ -315,4 +315,4 @@ gKmax = myECLM.computeAnalyseKMaxSample(p, blockSize, fileNameSampleParam, fileN
 
 # %%
 view = View(gKmax)
-plt.show()
+view.show()
