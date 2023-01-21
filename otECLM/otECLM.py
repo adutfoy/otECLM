@@ -166,6 +166,7 @@ class ECLM(object):
     The parameter :math:`P_t` is directly estimated from the total impact vector:
 
     .. math::
+        :label: eqPt
 
          \\hat{P}_t = \\sum_{i=1}^n\\dfrac{iV_t^{n,N}[i]}{nN}
 
@@ -198,6 +199,7 @@ class ECLM(object):
     Assuming that :math:`P_t \\leq \\frac{1}{2}`, we can write the constraints as:
 
     .. math::
+        :label: MankamoConstraints
 
         \\begin{array}{l}
             0\\leq  P_t \\leq \\dfrac{1}{2}\\\\
@@ -217,6 +219,90 @@ class ECLM(object):
         # GeneralParam: (pi, d_b, d_x, d_R, y_{xm})
         self.generalParameter = None
 
+        # Estimateur de Pt
+        N = sum(self.totalImpactVector)
+        Pt = 0.0
+        for i in range(1,self.n+1):
+            Pt += i*self.totalImpactVector[i]
+        Pt /= self.n*N
+        self.Pt = Pt
+    
+
+
+    def verify_MankamoConstraints(self, X):
+        """
+        Verifies if the point :math:`(Px, C_{co}, C_x)` verifies the constraints.
+
+        Parameters
+        ----------
+        inPoint : :class:`~openturns.Point`
+            The point :math:`(Px, C_{co}, C_x)`
+
+        Returns
+        -------
+        testRes : bool
+            True if the point verifies the constraints.
+
+        Notes
+        -----
+        The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. 
+        """
+
+        epsC1 = 1e-9
+        epsC2 = 1e-9
+        Px, Cco, Cx = X
+        logPx = math.log(Px)
+        
+        terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
+        terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
+        terme_min = math.log(min(self.Pt, terme1, terme2))
+
+        # X respects the constraints if
+        # Constraint 1 :  logPx < terme_min <==> terme_min -logPx > 0
+        # we impose that terme_min -logPx >= epsC1|terme_min| > 0 <==> terme_min - epsC1|terme_min|-logPx>=0
+        # <==> (1+epsC1)*terme_min-logPx >= 0
+        # Constraint 2 : Cx - Cco - epsC2 >0
+        test = (1+epsC1)*terme_min-logPx >0 and Cx - Cco - epsC2 >0 and self.Pt < 0.5
+
+        return test
+    
+
+    def compute_ValidMankamoStartingPoint(self, Cx, verbose=False):
+        """
+        Gives a point :math:`(Px, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
+
+        Parameters
+        ----------
+        Cx : float, :math:`0 < Cx < 1`
+            The parameter :math:`C_x`.
+
+        Returns
+        -------
+        validPoint : :class:`~openturns.Point`
+            A valid point  :math:`(Px, C_{co}, C_x)` verifying the constraints.
+        verbose : bool
+            if Ture, gives the possible range of  :math:`(Px, C_{co})`.
+
+
+        Notes
+        -----
+        The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. The parameter :math:`P_t` is computed from the total impact vector as :eq:`eqPt`. For a given :math:`C_x`, we give the range of possible values for :math:`P_x` and :math:`C_{co}` and we propose a valid point :math:`(Px, C_{co}, C_x)`.
+        """
+        
+        terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
+        terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
+        terme_min = min(self.Pt, terme1, terme2)
+
+        # X respects the constraints if:
+        # Constraint 1 :  Px < terme_min 
+        # Constraint 2 : Cx > Cco
+        if verbose: 
+            print('Px must be lesser than ', terme_min)
+            print('Cco mus be lesser than ',  Cx)
+
+        proposedPoint = ot.Point([terme_min/2, Cx/2, Cx])
+        return proposedPoint
+
 
     def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
         """
@@ -225,7 +311,7 @@ class ECLM(object):
         Parameters
         ----------
         startingPoint : :class:`~openturns.Point`
-            Mankamo starting point for the optimization problem.
+            Starting point :math:`(Px, C_{co}, C_x)` for the optimization problem.
         visuLikelihood : Bool
             Produces the graph of the log-likelihood function at the optimal point.
         verbose : Bool
@@ -239,24 +325,18 @@ class ECLM(object):
             The value of the log-likelihood function at the optimal point.
         graphList : list of :class:`~openturns.Graph`
             The collection of graphs drawing the log-likelihood function at the optimal point when one or two components are fixed.
+
+        Notes
+        -----
+        If the starting point is not valid, we computes a valid one witht the function *compute_ValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
         """
 
-
-        # Nombre de sollicitations
-        N = sum(self.totalImpactVector)
-
-        # estimateur de Pt
-        Pt = 0.0
-        for i in range(1,self.n+1):
-            Pt += i*self.totalImpactVector[i]
-        Pt /= self.n*N
-        logPt = math.log(Pt)
 
         def logVrais_Mankamo(X):
             logPx, Cco, Cx = X
             #print('logVrais_Mankamo : logPx, Cco, Cx = ', logPx, Cco, Cx)
             # variables (pi, db, dx, dR, y_xm=1-dR)
-            pi_weight, db, dx, dR, y_xm = self.computeGeneralParamFromMankamo([Pt, math.exp(logPx), Cco, Cx])
+            pi_weight, db, dx, dR, y_xm = self.computeGeneralParamFromMankamo([self.Pt, math.exp(logPx), Cco, Cx])
             self.setGeneralParameter([pi_weight, db, dx, dR, y_xm])
             #print('logVrais_Mankamo :[pi_weight, db, dx, dR, y_xm] = ', pi_weight, db, dx, dR, y_xm)
             #print('logVrais_Mankamo : self.generalParameter = ', self.generalParameter)
@@ -272,8 +352,8 @@ class ECLM(object):
         def func_constraints(X):
             logPx, Cco, Cx = X
             terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-            terme2 = (Pt-0.5)/(1-1/(2*terme1))
-            terme_min = math.log(min(terme1, terme2))
+            terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
+            terme_min = math.log(min(self.Pt, terme1, terme2))
 
             # X respects the constraints if
             # Constraint 1 :  logPx < terme_min <==> terme_min -logPx > 0
@@ -286,10 +366,6 @@ class ECLM(object):
         maFct_cont = ot.PythonFunction(3, 2, func_constraints)
         maFctLogVrais_Mankamo = ot.PythonFunction(3,1,logVrais_Mankamo)
 
-
-        # test des res de Mankamo [logPx, Cco, Cx]
-        #print('Best LogLik de Mankamo = ', maFctLogVrais_Mankamo([math.log(5.7e-7), 0.51, 0.85]))
-
         ######################################
         # Maximisation de la vraisemblance
 
@@ -300,7 +376,7 @@ class ECLM(object):
         # contraintes sur (Px, Cco, Cx): maFct_cont >= 0
         optimPb.setInequalityConstraint(maFct_cont)
         # bounds sur (logPx, Cco, Cx)
-        boundsParam = ot.Interval([-35, epsC1, epsC1], [logPt, 1.0-epsC1, 1.0-epsC1])
+        boundsParam = ot.Interval([-35, epsC1, epsC1], [math.log(self.Pt), 1.0-epsC1, 1.0-epsC1])
         #print('boundsParam = ', boundsParam)
         optimPb.setBounds(boundsParam)
         # algo Cobyla pour ne pas avoir les gradients
@@ -315,19 +391,14 @@ class ECLM(object):
         myAlgo.setMaximumResidualError(1e-5)
 
         # Point de départ:
+        # startingPoint = [Px, Cco, Cx]
+        if not self.verify_MankamoConstraints(startingPoint):        
+            startingPoint = self.compute_ValidMankamoStartingPoint(0.7, verbose)
+            if verbose:
+                print('Changed starting point : ', startingPoint)
         # startPoint = [logPx, Cco, Cx]
         startPoint = [math.log(startingPoint[0]), startingPoint[1], startingPoint[2]]
         myAlgo.setStartingPoint(startPoint)
-        if verbose:
-            print('Mon point de départ verifie-t il les contraintes? ')
-            if maFct_cont(startPoint)[0] > 0.0:
-                print('oui!')
-            else:
-                print('non')
-
-        if verbose:
-            ot.Log.Show(ot.Log.INFO)
-            myAlgo.setVerbose(verbose)
 
         myAlgo.run()
 
@@ -342,7 +413,7 @@ class ECLM(object):
         Cx_optim = myOptimalPoint[2]
 
         # Mankamo parameter
-        mankamoParam = [Pt, Px_optim, Cco_optim, Cx_optim]
+        mankamoParam = [self.Pt, Px_optim, Cco_optim, Cx_optim]
         self.setMankamoParameter(mankamoParam)
         # General parameter = (pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
         generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
@@ -1849,6 +1920,19 @@ class ECLM(object):
         self.n = n
 
 
+    def setPt(self, Pt):
+        """
+        Accessor to the probability :math:`P_t`.
+
+        Parameters
+        ----------
+        Pt : float, :math:`0 < P_t < 1`
+            The estimator of PSG(:math:`|n`).
+        """
+
+        self.Pt = Pt
+
+
     def getTotalImpactVector(self):
         """
         Accessor to the total impact vector.
@@ -1911,3 +1995,15 @@ class ECLM(object):
         """
 
         return self.n
+
+    def getPt(self):
+        """
+        Accessor to the the probability :math:`P_t`.
+
+        Returns
+        -------
+        Pt : float, :math:`0 < P_t < 1`
+            The estimator of PSG(:math:`|n`).
+        """
+
+        return self.Pt
