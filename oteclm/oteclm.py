@@ -416,8 +416,9 @@ class ECLM(object):
         mankamoParam = [self.Pt, Px_optim, Cco_optim, Cx_optim]
         self.setMankamoParameter(mankamoParam)
         # General parameter = (pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
-        generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
-        self.setGeneralParameter(generalParam)
+        # ==> mis à jour par setMankamoParameter
+        #generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
+        #self.setGeneralParameter(generalParam)
 
         ######################################
         # Graphes de la log vraisemblance avec point optimal
@@ -1922,6 +1923,9 @@ class ECLM(object):
         """
 
         self.MankamoParameter = mankamoParameter
+        # General parameter = (pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
+        generalParam = self.computeGeneralParamFromMankamo(mankamoParam)
+        self.setGeneralParameter(generalParam)
 
 
     def setGeneralParameter(self, generalParameter):
