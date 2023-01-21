@@ -1076,7 +1076,7 @@ class ECLM(object):
         return resFinal
 
 
-    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, blockSize, fileNameRes):
+    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blocksize=256):
         r"""
         Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
 
@@ -1086,10 +1086,10 @@ class ECLM(object):
             The size of the sample generated.
         startingPoint : list of float,
             Mankamo starting point :eq:`MankamoParam` for the optimization problem.
-        blockSize : int,
-            The block size after which the sample is saved.
         fileNameRes: string,
             The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption :eq:`mankamoHyp`.
+        blockSize : int,
+            The block size after which the sample is saved. Default value is 256.
 
         Notes
         -----
@@ -1222,18 +1222,18 @@ class ECLM(object):
         os.remove("myECLM.xml")
 
 
-    def computeECLMProbabilitiesFromMankano(self, blockSize, fileNameInput, fileNameRes):
+    def computeECLMProbabilitiesFromMankano(self, fileNameInput, fileNameRes, blockSize=256):
         r"""
         Computes the sample of all the ECLM probabilities from a sample of Mankamo parameters using the Mankamo assumption.
 
         Parameters
         ----------
-        blockSize : int,
-            The block size after which the sample is saved.
         fileNameInput: string,
             The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
         fileNameRes: string,
             The csv file that stores the ECLM probabilities.
+        blockSize : int,
+            The block size after which the sample is saved. Default value is 256.
 
         Notes
         -----
@@ -1889,7 +1889,7 @@ class ECLM(object):
         return k - 1
 
 
-    def computeAnalyseKMaxSample(self, p, blockSize, fileNameInput, fileNameRes):
+    def computeAnalyseKMaxSample(self, p, fileNameInput, fileNameRes, blockSize = 256):
         r"""
         Generates a :math:`k_{max}` sample and produces graphs to analyse it.
 
@@ -1898,14 +1898,14 @@ class ECLM(object):
         p : float, :math:` 0 \leq p \leq 1`
             The probability threshold.
 
-        blockSize : int
-            The block size after which the sample is saved.
-
         fileNameInput: string
             The csv file that stores the sample of  :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
 
         fileNameRes: string
             The csv file that stores the sample of  :math:`k_{max}` defined by :eq:`kMaxDef`.
+
+        blockSize : int,
+            The block size after which the sample is saved. Default value is 256.
 
         Returns
         -------
