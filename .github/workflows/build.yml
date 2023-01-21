@@ -22,7 +22,7 @@ jobs:
         run: |
           git clone --depth 1 https://${{ secrets.GH_TOKEN }}@github.com/adutfoy/adutfoy.github.io.git /tmp/io
           mkdir -p /tmp/io/otECLM/main
-          cp -r doc/build/html/* /tmp/io/otECLM/main
+          cp -r doc/_build/html/* /tmp/io/otECLM/main
           cd /tmp/io
           touch .nojekyll
           git config user.email "anne.dutfoy@m4x.org"
