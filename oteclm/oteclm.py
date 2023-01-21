@@ -1,5 +1,6 @@
 import numpy as np
 import openturns as ot
+import openturns.viewer as otView
 import math as math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from time import time
@@ -11,7 +12,7 @@ class ECLM(object):
     Provides a class for the Extended Common Load Model (ECLM).
 
     Parameters
-    ----------
+    ---------- 
     totalImpactVector : :class:`~openturns.Indices`
         The total impact vector of the common cause failure (CCF) group.
     integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
@@ -23,7 +24,7 @@ class ECLM(object):
 
     We consider a common cause failure (CCF) group of :math:`n` components supposed to be independent and identical.
 
-    We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \dots, R_n)` are independant and identically distributed according to :math:`R`.
+    We denote by :math:`S` the load and :math:`R_i` the resistance of the component :math:`i` of the CCF group. We assume that :math:`(R_1, \dots, R_n)` are independent and identically distributed according to :math:`R`.
 
     We assume that the load :math:`S` is modelled as a mixture of two normal distributions:
 
@@ -136,7 +137,7 @@ class ECLM(object):
 
         N^{n,N}_t = \sum_{k=1}^N N^n_k
 
-    where the random variables :math:`(N^n_1, \dots, N^n_N)` are independant and identically distributed as :math:`N^n`. The :math:`N^{n,N}_t` follows a Multinomial distribution parameterized by :math:`(N,(p_0, \dots, p_n))` with:
+    where the random variables :math:`(N^n_1, \dots, N^n_N)` are independent and identically distributed as :math:`N^n`. The :math:`N^{n,N}_t` follows a Multinomial distribution parameterized by :math:`(N,(p_0, \dots, p_n))` with:
 
     .. math::
 
@@ -259,6 +260,7 @@ class ECLM(object):
         \end{array}
     """
 
+    
     def __init__(self, totalImpactVector, integrationAlgo):
         # set attribute
         self.totalImpactVector = totalImpactVector
@@ -277,6 +279,8 @@ class ECLM(object):
         Pt /= self.n*N
         self.Pt = Pt
     
+        # global parameter
+        self.eps = 1e-9
 
 
     def verifyMankamoConstraints(self, X):
@@ -298,24 +302,24 @@ class ECLM(object):
         The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. 
         """
 
-        epsC1 = 1e-9
-        epsC2 = 1e-9
         Px, Cco, Cx = X
         logPx = math.log(Px)
+
+        if Cx >1:
+            return False
         
         terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
         terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
-        terme_min = math.log(min(self.Pt, terme1, terme2))
+        terme12_min = math.log(min(self.Pt, terme1, terme2))
 
         # X respects the constraints if
-        # Constraint 1 :  logPx < terme_min <==> terme_min -logPx > 0
-        # we impose that terme_min -logPx >= epsC1|terme_min| > 0 <==> terme_min - epsC1|terme_min|-logPx>=0
-        # <==> (1+epsC1)*terme_min-logPx >= 0
-        # Constraint 2 : Cx - Cco - epsC2 >0
-        test = (1+epsC1)*terme_min-logPx >0 and Cx - Cco - epsC2 >0 and self.Pt < 0.5
-
+        # Constraint 1 :  logPx < terme_min
+        # Constraint 2 : 0 < Cx < 1
+        # Constraint 3 : 0 < Cco < 1
+            
+        test = logPx < terme12_min and Cco >0 and Cco < 1 and Cx >0
         return test
-    
+
 
     def computeValidMankamoStartingPoint(self, Cx, verbose=False):
         r"""
@@ -331,13 +335,18 @@ class ECLM(object):
         validPoint : :class:`~openturns.Point`
             A valid point  :math:`(P_x, C_{co}, C_x)` verifying the constraints.
         verbose : bool
-            if Ture, gives the possible range of  :math:`(P_x, C_{co})`.
+            if True, gives the possible range of  :math:`(P_x, C_{co})`.
 
 
         Notes
         -----
         The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. The parameter :math:`P_t` is computed from the total impact vector as :eq:`eqPt`. For a given :math:`C_x`, we give the range of possible values for :math:`P_x` and :math:`C_{co}` and we propose a valid point :math:`(P_x, C_{co}, C_x)`.
         """
+        
+        if Cx < self.eps or Cx > 1.0-self.eps:
+            raise('Problem with Cx not in [0, 1] or too close to the bounds!')
+        if self.Pt > 0.5-self.eps:
+            raise('Problem with Pt not < 0.5 or to close to 0.5!')
         
         terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
         terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
@@ -347,8 +356,8 @@ class ECLM(object):
         # Constraint 1 :  Px < terme_min 
         # Constraint 2 : Cx > Cco
         if verbose: 
-            print('Px must be lesser than ', terme_min)
-            print('Cco must be lesser than ',  Cx)
+            print('Px must be less than ', terme_min)
+            print('Cco must be less than ',  Cx)
 
         proposedPoint = ot.Point([terme_min/2, Cx/2, Cx])
         return proposedPoint
@@ -356,7 +365,13 @@ class ECLM(object):
 
     def logVrais_Mankamo(self, X):
         logPx, Cco, Cx = X
-        #print('logVrais_Mankamo : logPx, Cco, Cx = ', logPx, Cco, Cx)
+
+        # X is not in the definition domain of PEG
+        #print('self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)) = ', self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)))
+        if not self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)):
+            return [-ot.SpecFunc.MaxScalar]
+
+        
         # variables (pi, db, dx, dR, y_xm=1-dR)
         pi_weight, db, dx, dR, y_xm = self.computeGeneralParamFromMankamo([self.Pt, math.exp(logPx), Cco, Cx])
         self.setGeneralParameter([pi_weight, db, dx, dR, y_xm])
@@ -367,7 +382,9 @@ class ECLM(object):
                 val = self.computePEG(k)
                 log_PEG_k = math.log(val)
                 S += self.totalImpactVector[k] * log_PEG_k
+        #print('logVrais_Mankamo, S : logPx, Cco, Cx = ', logPx, Cco, Cx, S)
         return [S]
+    
 
     def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
         r"""
@@ -396,45 +413,56 @@ class ECLM(object):
         If the starting point is not valid, we computes a valid one witht the function *computeValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
         """
 
-        def func_constraints(X):
+        def func_constraint_Cco_Cx(X):
             logPx, Cco, Cx = X
-            terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-            terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
-            terme_min = math.log(min(self.Pt, terme1, terme2))
-
             # X respects the constraints if
-            # Constraint 1 :  logPx < terme_min <==> terme_min -logPx > 0
-            # we impose that terme_min -logPx >= epsC1|terme_min| > 0 <==> terme_min - epsC1|terme_min|-logPx>=0
-            # <==> (1+epsC1)*terme_min-logPx >= 0
-            # Constraint 2 : Cx - Cco - epsC2 >0
+            # Cco <= Cx
             # return un Point
-            return [(1+epsC1)*terme_min-logPx, Cx - Cco - epsC2]
+            return [Cx - Cco]
 
-        maFct_cont = ot.PythonFunction(3, 2, func_constraints)
+        maFct_cont_Cco_Cx = ot.PythonFunction(3, 1, func_constraint_Cco_Cx)
         maFctLogVrais_Mankamo = ot.PythonFunction(3,1, self.logVrais_Mankamo)
 
+        def func_contraint_LogPx_Cx(X):
+            logPx, Cco, Cx = X
+            # pour dessiner la contrainte suivante 
+            # (logPx, Cx) --> min(terme1, terme2, terme3) - logPx
+
+            #print('-math.sqrt(1-Cx) = ', -math.sqrt(1-Cx))
+            terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
+            terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
+            terme3 = self.Pt
+            #print('terme1, terme2, terme3 = ', terme1, terme2, terme3)
+            
+            # return un Point
+            return [min(math.log(terme1), math.log(terme2), math.log(terme3))-logPx]
+
+
+        # juste pour les besoins des graphes
+        ma_Fct_cont_LogPx_Cx = ot.PythonFunction(3, 1, func_contraint_LogPx_Cx)
+        
         ######################################
         # Maximisation de la vraisemblance
 
-        epsC1 = 1e-9
-        epsC2 = 1e-9
         optimPb = ot.OptimizationProblem(maFctLogVrais_Mankamo)
         optimPb.setMinimization(False)
-        # contraintes sur (Px, Cco, Cx): maFct_cont >= 0
-        optimPb.setInequalityConstraint(maFct_cont)
+        # contraintes sur (Cco, Cx): maFct_cont >= 0
+        optimPb.setInequalityConstraint(maFct_cont_Cco_Cx)
         # bounds sur (logPx, Cco, Cx)
-        boundsParam = ot.Interval([-35, epsC1, epsC1], [math.log(self.Pt), 1.0-epsC1, 1.0-epsC1])
-        #print('boundsParam = ', boundsParam)
+        boundsParam = ot.Interval([-35, self.eps, self.eps], [math.log(self.Pt), 1.0-self.eps, 1.0-self.eps])
+        print('boundsParam = ', boundsParam)
         optimPb.setBounds(boundsParam)
         # algo Cobyla pour ne pas avoir les gradients
         myAlgo = ot.Cobyla(optimPb)
-        myAlgo.setIgnoreFailure(True)
-        myAlgo.setRhoBeg(1e-1)
-        myAlgo.setMaximumEvaluationNumber(10000)
-        myAlgo.setMaximumIterationNumber(10000)
+        myAlgo.setVerbose(verbose)
+        if verbose:
+            ot.Log.Show(ot.Log.ALL)
+        #myAlgo.setIgnoreFailure(True)
+        myAlgo.setRhoBeg(0.1)
+        myAlgo.setMaximumEvaluationNumber(100000)
         myAlgo.setMaximumConstraintError(1e-5)
         myAlgo.setMaximumAbsoluteError(1e-5)
-        myAlgo.setMaximumRelativeError(1e-5)
+        myAlgo.setMaximumRelativeError(1e-4)
         myAlgo.setMaximumResidualError(1e-5)
 
         # Point de départ:
@@ -466,109 +494,144 @@ class ECLM(object):
         # ==> mis à jour par setMankamoParameter
         generalParam = self.getGeneralParameter()
 
+        ######################################################
+        # Pour avoir les graphes de Mankamo au point de Mankamo
+        #mankamoParam = [self.Pt, 5.7e-7, 0.51, 0.85]
+        #self.setMankamoParameter(mankamoParam)
+        #logPx_optim = math.log(5.7e-7)
+        #Px_optim = 5.7e-7
+        #Cco_optim = 0.51
+        #Cx_optim = 0.85
+        ######################################################
         
         ######################################
-        # Graphes de la log vraisemblance avec point optimal
-
+        # Graphes de la log vraisemblance avec point optimal     
+        
         g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx = [None]*6
 
         if visuLikelihood:
             print('Production of graphs')
-            maFct_cont_fixedlogPx = ot.ParametricFunction(maFct_cont, [0], [logPx_optim])
-            maFct_cont_fixedCco = ot.ParametricFunction(maFct_cont, [1], [Cco_optim])
-            maFct_cont_fixedCx = ot.ParametricFunction(maFct_cont, [2], [Cx_optim])
+            maFct_cont_Cco_Cx_fixedlogPx = ot.ParametricFunction(maFct_cont_Cco_Cx, [0], [logPx_optim])
+            
+            ma_Fct_cont_LogPx_Cx_fixedCco = ot.ParametricFunction(ma_Fct_cont_LogPx_Cx, [1], [Cco_optim])
+            ma_Fct_cont_LogPx_Cx_fixedCcoCx = ot.ParametricFunction(ma_Fct_cont_LogPx_Cx, [1,2], [Cco_optim, Cx_optim])
+            ma_Fct_cont_LogPx_Cx_fixedlogPxCco = ot.ParametricFunction(ma_Fct_cont_LogPx_Cx, [0,1], [logPx_optim, Cco_optim])
+
             maFctLogVrais_Mankamo_fixedlogPx =ot. ParametricFunction(maFctLogVrais_Mankamo, [0], [logPx_optim])
             maFctLogVrais_Mankamo_fixedCco = ot.ParametricFunction(maFctLogVrais_Mankamo, [1], [Cco_optim])
             maFctLogVrais_Mankamo_fixedCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [2], [Cx_optim])
-            maFctLogVrais_Mankamo_fixedlogPxCco = ot.ParametricFunction(maFctLogVrais_Mankamo, [0, 1], [logPx_optim, Cco_optim])
+            maFctLogVrais_Mankamo_fixedlogPxCco = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,1], [logPx_optim, Cco_optim])
             maFctLogVrais_Mankamo_fixedCcoCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [1,2], [Cco_optim, Cx_optim])
             maFctLogVrais_Mankamo_fixedlogPxCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,2], [logPx_optim, Cx_optim])
 
-            coef = 0.03
-            logPx_inf = (1-coef)*logPx_optim
-            logPx_sup = (1+coef)*logPx_optim
-            Cco_inf = (1-coef)*Cco_optim
-            Cco_sup = (1+coef)*Cco_optim
-            Cx_inf = (1-coef)*Cx_optim
-            Cx_sup = (1+coef)*Cx_optim
+            coef = 0.3
+            # Care! logPx_optim <0!
+            logPx_inf = (1+coef)*logPx_optim
+            logPx_sup = (1-coef)*logPx_optim
+            Cco_inf = max((1-coef)*Cco_optim, 0.01)
+            Cco_sup = min((1+coef)*Cco_optim, 0.99)
+            Cx_inf = max((1-coef)*Cx_optim, 0.01)
+            Cx_sup = min((1+coef)*Cx_optim, 0.99)
             NbPt = 128
             NbPt2 = 64
-
 
             ####################
             # graphe (logPx) pour Cco = Cco_optim et Cx = Cx_optim
             # graphe de la loglikelihood
             print('graph (Cco, Cx) = (Cco_optim, Cx_optim)')
             g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, logPx_sup, NbPt)
-
+            
+            # + contrainte sur logPx
+            limSup_logPx = ma_Fct_cont_LogPx_Cx_fixedCcoCx([logPx_optim])[0] + logPx_optim
+            minValGraph = g_fixedCcoCx.getDrawable(0).getData().getMin()[1]
+            maxValGraph = g_fixedCcoCx.getDrawable(0).getData().getMax()[1]
+            lineConstraint = ot.Curve([limSup_logPx,limSup_logPx], [minValGraph, maxValGraph], r'$\log P_x \leq f(C_x^{optim})$')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            g_fixedCcoCx.add(lineConstraint)
+            
             # + point optimal
             pointOptim = ot.Sample(1, [logPx_optim, maFctLogVrais_Mankamo_fixedCcoCx([logPx_optim])[0]])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedCcoCx.add(myCloud)
             g_fixedCcoCx.setXTitle(r'$\log P_x$')
             g_fixedCcoCx.setYTitle(r'$\log \, \mathcal{L}$')
-            g_fixedCcoCx.setTitle(r'Log likelihood at $(C_{co}, C_{x}) = $'+ format(Cco_optim,'.2E') + ',' +  format(Cx_optim,'.2E'))
-
+            g_fixedCcoCx.setTitle(r'Log likelihood at $(C_{co}, C_{x}) = ($'+ format(Cco_optim,'.2E') + ',' +  format(Cx_optim,'.2E') + ')')
+            g_fixedCcoCx.setLegendPosition('bottomleft')
+            #view = otView.View(g_fixedCcoCx)
+            #view.show()
+            
             ####################
             # graphe (Cco) pour log Px = log Px_optim et Cx = Cx_optim
             # graphe de la loglikelihood
             print('graph (logPx, Cx) = (logPx_optim, Cx_optim)')
             g_fixedlogPxCx = maFctLogVrais_Mankamo_fixedlogPxCx.draw(Cco_inf, Cco_sup, NbPt)
-
-            # + point optimal + contrainte: Cc0 < Cx
+            # + contrainte sur Cco< Cx
+            minValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMin()[1]
+            maxValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMax()[1]
+            lineConstraint = ot.Curve([Cx_optim, Cx_optim], [minValGraph, maxValGraph], r'$C_{co} \leq C_x^{optim}$')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            g_fixedlogPxCx.add(lineConstraint)
+            
+            
+            # + point optimal 
             pointOptim = ot.Sample(1, [Cco_optim, maFctLogVrais_Mankamo_fixedlogPxCx([Cco_optim])[0]])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCx.add(myCloud)
             g_fixedlogPxCx.setXTitle(r'$C_{co}$')
             g_fixedlogPxCx.setYTitle(r'$\log \, \mathcal{L}$')
-            g_fixedlogPxCx.setTitle(r'Log likelihood at $(\log P_{x}, C_{x}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cx_optim,'.2E'))
-            minValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMin()[1]
-            maxValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMax()[1]
-            lineConstraint = ot.Curve([Cx_optim, Cx_optim], [minValGraph, maxValGraph], 'constraint')
-            lineConstraint.setLineStyle('dashed')
-            lineConstraint.setColor('black')
-            g_fixedlogPxCx.add(lineConstraint)
+            g_fixedlogPxCx.setTitle(r'Log likelihood at $(\log P_{x}, C_{x}) = ($'+ format(logPx_optim,'.2E') + ',' +  format(Cx_optim,'.2E') + ')')
+            g_fixedlogPxCx.setLegendPosition('topright')
+            #view = otView.View(g_fixedlogPxCx)
+            #view.show()
 
             ####################
             # graphe (Cx) pour logPx = logPx_optim et Cco = Cco_optim
             # graphe de la loglikelihood
             print('graph (logPx, Cco) = (logPx_optim, Cco_optim)')
             g_fixedlogPxCco = maFctLogVrais_Mankamo_fixedlogPxCco.draw(Cx_inf, Cx_sup, NbPt)
-
-            # + point optimal + contrainte: Cc0 < Cx
+            # contrainte Cx > Cco
+            minValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMin()[1]
+            maxValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMax()[1]
+            lineConstraint = ot.Curve([Cco_optim, Cco_optim], [minValGraph, maxValGraph], r'$C_{co}^{optim} \leq C_x$')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            g_fixedlogPxCco.add(lineConstraint)
+            
+            # + point optimal 
             pointOptim = ot.Sample(1, [Cx_optim, maFctLogVrais_Mankamo_fixedlogPxCco([Cx_optim])[0]])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
             g_fixedlogPxCco.add(myCloud)
             g_fixedlogPxCco.setXTitle(r'$C_x$')
             g_fixedlogPxCco.setYTitle(r'$\log \, \mathcal{L}$')
-            g_fixedlogPxCco.setTitle(r'Log likelihood at $(\log P_{x}, C_{co}) = $'+ format(logPx_optim,'.2E') + ',' +  format(Cco_optim,'.2E'))
-            minValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMin()[1]
-            maxValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMax()[1]
-            lineConstraint = ot.Curve([Cco_optim, Cco_optim], [minValGraph, maxValGraph], 'constraint')
-            lineConstraint.setLineStyle('dashed')
-            lineConstraint.setColor('black')
-            g_fixedlogPxCco.add(lineConstraint)
+            g_fixedlogPxCco.setTitle(r'Log likelihood at $(\log P_{x}, C_{co}) = ($'+ format(logPx_optim,'.2E') + ',' +  format(Cco_optim,'.2E') + ')')
+            g_fixedlogPxCco.setLegendPosition('bottomright')
+            #g_fixedlogPxCco.setBoundingBox(ot.Interval([0.9, maFctLogVrais_Mankamo_fixedlogPxCco([0.9])[0]], [0.99, maFctLogVrais_Mankamo_fixedlogPxCco([0.99])[0]]))
 
+            #view = otView.View(g_fixedlogPxCco)
+            #view.show()
+                        
             ####################
             # graphe (Px, Cco) pour Cx = Cx_optim
-            # fonction contraintes 1 et 2
             print('graph Cx = Cx_optim')
-            g_constraint1 = maFct_cont_fixedCx.getMarginal([0]).draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)
-            dr = g_constraint1.getDrawable(0)
+            # graphe de la loglikelihood
+            g_fixedCx = maFctLogVrais_Mankamo_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)            
+            # contrainte  Cx > Cco
+            lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cx_optim, Cx_optim],  r'$C_{co} \leq C_x^{optim}$')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setLineWidth(2)
+            lineConstraint.setColor('black')
+            g_fixedCx.add(lineConstraint)
+            # contrainte sur logPx et Cx
+            dr =  ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2).getDrawable(0)
             dr.setLevels([0.0])
-            dr.setLegend('constraint 1')
+            #dr.setLegend(r'$\log P_x \leq f(C_x)$')
+            dr.setLegend('constraint')
             dr.setLineStyle('dashed')
             dr.setColor('black')
-            g_constraint1.setDrawables([dr])
-            lineConstraint = ot.Curve([logPx_inf,logPx_sup], [Cx_optim, Cx_optim], 'constraint 2')
-            lineConstraint.setLineStyle('dashed')
-            lineConstraint.setColor('black')
-
-            # niveau de la loglikelihood
-            g_fixedCx = maFctLogVrais_Mankamo_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)
-            g_fixedCx.add(g_constraint1)
-            g_fixedCx.add(lineConstraint)
-
+            g_fixedCx.add(dr)
+                  
             # + point optimal
             pointOptim = ot.Sample(1, [logPx_optim, Cco_optim])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
@@ -576,26 +639,33 @@ class ECLM(object):
             g_fixedCx.setXTitle(r'$\log P_x$')
             g_fixedCx.setYTitle(r'$C_{co}$')
             g_fixedCx.setTitle(r'Log likelihood at $C_{x} = $'+ format(Cx_optim,'.2E'))
+            g_fixedCx.setLegendPosition('topleft')
+            
+            #view = otView.View(g_fixedCx)
+            #view.show()     
 
+            
             ####################
             # graphe (logPx, Cx) pour Cco = Cco_optim
-            # fonction contraintes 1 et 2
             print('graph Cco = Cco_optim')
-            g_constraint1 = maFct_cont_fixedCco.getMarginal([0]).draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
-            dr = g_constraint1.getDrawable(0)
-            dr.setLevels([0.0])
-            dr.setLegend('constraint 1')
-            dr.setLineStyle('dashed')
-            dr.setColor('black')
-            g_constraint1.setDrawables([dr])
-            lineConstraint = ot.Curve([logPx_inf,logPx_sup], [Cco_optim, Cco_optim], 'constraint 2')
+            # graphe de la loglikelihood
+            g_fixedCco = maFctLogVrais_Mankamo_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
+            # contrainte  Cx > Cco
+            #lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cco_optim, Cco_optim], r'$C_{co}^{optim} \leq C_x$')
+            lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cco_optim, Cco_optim], 'constraint')
             lineConstraint.setLineStyle('dashed')
             lineConstraint.setColor('black')
-            # niveau de la loglikelihood
-            g_fixedCco = maFctLogVrais_Mankamo_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
-            g_fixedCco.add(g_constraint1)
+            lineConstraint.setLineWidth(2)
             g_fixedCco.add(lineConstraint)
-
+            # contrainte sur logPx et Cx
+            dr = ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2).getDrawable(0)
+            dr.setLevels([0.0])
+            #dr.setLegend(r'$\log P_x \leq f(C_x)$')
+            dr.setLegend('constraint')
+            dr.setLineStyle('dashed')
+            dr.setColor('black')
+            g_fixedCco.add(dr)                  
+            
             # + point optimal
             pointOptim = ot.Sample(1, [logPx_optim, Cx_optim])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
@@ -603,23 +673,20 @@ class ECLM(object):
             g_fixedCco.setXTitle(r'$\log P_x$')
             g_fixedCco.setYTitle(r'$C_{x}$')
             g_fixedCco.setTitle(r'Log likelihood at $C_{co} = $'+ format(Cco_optim,'.2E'))
+            g_fixedCco.setLegendPosition('bottomleft')
 
             ####################
             # graphe (Cco, Cx) pour logPx = logPx_optim
-            # fonction contraintes 1 et 2
             print('graph logPx = logPx_optim')
-
-            g_constraint2 = maFct_cont_fixedlogPx.getMarginal([1]).draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
-            dr = g_constraint2.getDrawable(0)
-            dr.setLevels([0.0])
-            dr.setLegend('constraint 2')
-            dr.setLineStyle('dashed')
-            dr.setColor('black')
-            g_constraint2.setDrawables([dr])
             # niveau de la loglikelihood
             g_fixedlogPx = maFctLogVrais_Mankamo_fixedlogPx.draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
-            g_fixedlogPx.add(g_constraint2)
-
+            # contrainte  Cx > Cco
+            lineConstraint = ot.Curve([Cco_inf, Cco_sup], [Cx_inf, Cx_sup], r'$C_{co} \leq C_x$')
+            lineConstraint.setLineStyle('dashed')
+            lineConstraint.setColor('black')
+            lineConstraint.setLineWidth(2)
+            g_fixedlogPx.add(lineConstraint)
+            # contrainte sur logPx et Cx ==> pas possible de le dessiner! Introduire une nvelle fonction
             # + point optimal
             pointOptim = ot.Sample(1, [Cco_optim, Cx_optim])
             myCloud = ot.Cloud(pointOptim, 'black', 'bullet')
@@ -627,6 +694,10 @@ class ECLM(object):
             g_fixedlogPx.setXTitle(r'$C_{co}$')
             g_fixedlogPx.setYTitle(r'$C_{x}$')
             g_fixedlogPx.setTitle(r'Log likelihood at $\log P_{x} = $'+ format(logPx_optim,'.2E'))
+            g_fixedlogPx.setLegendPosition('bottomright')
+            
+            #view = otView.View(g_fixedlogPx)
+            #view.show()     
 
         return mankamoParam, generalParam, finalLogLikValue, [g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx]
 
@@ -1565,17 +1636,41 @@ class ECLM(object):
             print('Test de Lilliefors')
             print('==================')
             print('')
-
-            best_model_PEG_k, best_result_PEG_k = ot.FittingTest.BestModelLilliefors(samplePEG_k, factoryColl)
-            best_model_PSG_k, best_result_PSG_k = ot.FittingTest.BestModelLilliefors(samplePSG_k, factoryColl)
-            best_model_PES_k, best_result_PES_k = ot.FittingTest.BestModelLilliefors(samplePES_k, factoryColl)
-            best_model_PTS_k, best_result_PTS_k = ot.FittingTest.BestModelLilliefors(samplePTS_k, factoryColl)
-
+            
+            best_model_PEG_k = 'none'
+            best_model_PSG_k = 'none'
+            best_model_PES_k = 'none'
+            best_model_PTS_k = 'none'
+            
             print('Ordre k=', k)
-            print('Best model PEG(', k, '|n) : ', best_model_PEG_k, 'p-value = ', best_result_PEG_k.getPValue())
-            print('Best model PSG(', k, '|n) : ', best_model_PSG_k, 'p-value = ', best_result_PSG_k.getPValue())
-            print('Best model PES(', k, '|n) : ', best_model_PES_k, 'p-value = ', best_result_PES_k.getPValue())
-            print('Best model PTS(', k, '|n) : ', best_model_PTS_k, 'p-value = ', best_result_PTS_k.getPValue())
+            try:
+                print('PEG...')
+                best_model_PEG_k, best_result_PEG_k = ot.FittingTest.BestModelLilliefors(samplePEG_k, factoryColl)
+                print('Best model PEG(', k, '|n) : ', best_model_PEG_k, 'p-value = ', best_result_PEG_k.getPValue())
+                best_model_PEG_k = best_model_PEG_k.getName()
+            except:
+                pass
+            try:
+                print('PSG...')
+                best_model_PSG_k, best_result_PSG_k = ot.FittingTest.BestModelLilliefors(samplePSG_k, factoryColl)
+                print('Best model PSG(', k, '|n) : ', best_model_PSG_k, 'p-value = ', best_result_PSG_k.getPValue())
+                best_model_PSG_k = best_model_PSG_k.getName()
+            except:
+                pass
+            try:
+                print('PES...')
+                best_model_PES_k, best_result_PES_k = ot.FittingTest.BestModelLilliefors(samplePES_k, factoryColl)
+                print('Best model PES(', k, '|n) : ', best_model_PES_k, 'p-value = ', best_result_PES_k.getPValue())
+                best_model_PES_k = best_model_PES_k.getName()
+            except:
+                pass
+            try:
+                print('PTS...')
+                best_model_PTS_k, best_result_PTS_k = ot.FittingTest.BestModelLilliefors(samplePTS_k, factoryColl)
+                print('Best model PTS(', k, '|n) : ', best_model_PTS_k, 'p-value = ', best_result_PTS_k.getPValue())
+                best_model_PTS_k = best_model_PTS_k.getName()
+            except:
+                pass
             print('')
 
             ##############################
@@ -1601,7 +1696,7 @@ class ECLM(object):
 
             graph.setLegendPosition('topright')
             graph.setXTitle(descPEG[k])
-            graph.setTitle('PEG('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PEG_k.getName()))
+            graph.setTitle('PEG('+str(k) + '|' + str(n) + ') - best model : ' +  best_model_PEG_k)
             graphMargPEG_list.append(graph)
             descMargPEG.add('PEG_'+str(k))
 
@@ -1626,7 +1721,7 @@ class ECLM(object):
                     
             graph.setLegendPosition('topright')
             graph.setXTitle(descPSG[k])
-            graph.setTitle('PSG('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PSG_k.getName()))
+            graph.setTitle('PSG('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PSG_k)
             graphMargPSG_list.append(graph)
             descMargPSG.add('PSG_'+str(k))
 
@@ -1651,7 +1746,7 @@ class ECLM(object):
 
             graph.setLegendPosition('topright')
             graph.setXTitle(descPES[k])
-            graph.setTitle('PES('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PES_k.getName()))
+            graph.setTitle('PES('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PES_k)
             graphMargPES_list.append(graph)
             descMargPES.add('PES_'+str(k))
 
@@ -1676,7 +1771,7 @@ class ECLM(object):
 
             graph.setLegendPosition('topright')
             graph.setXTitle(descPTS[k])
-            graph.setTitle('PTS('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PTS_k.getName()))
+            graph.setTitle('PTS('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PTS_k)
             graphMargPTS_list.append(graph)
             descMargPTS.add('PTS_'+str(k))
 
