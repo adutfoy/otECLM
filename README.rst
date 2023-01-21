@@ -1,5 +1,5 @@
-ottemplate module
-=================
+otECLM module
+=============
 
 ottemplate is a (non official) module for OpenTURNS. It serves as a template or example to build python modules designed to interact within the openturns platform.
 
@@ -57,11 +57,7 @@ This builds the documentation in the `build` folder. Another option is to launch
 
     $ make html -C doc
 
-Help pages
-==========
+Documentation
+=============
 
-Here are some links to help on how to build a python module
-
-https://www.sphinx-doc.org/en/master/usage/quickstart.html
-
-https://python-packaging.readthedocs.io/en/latest/minimal.html
+A documentation, including examples is available `here <https://adutfoy.github.io/otECLM/main/>`_.

@@ -18,11 +18,11 @@ jobs:
           sudo apt install -y texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra
           make html -C doc
       - name: Upload
-        if: ${{ github.ref == 'refs/heads/master' }}          
+        if: ${{ github.ref == 'refs/heads/main' }}          
         run: |
           git clone --depth 1 https://${{ secrets.GH_TOKEN }}@github.com/adutfoy/adutfoy.github.io.git /tmp/io
-          mkdir -p /tmp/io/otECLM/master
-          cp -r doc/build/html/* /tmp/io/otECLM/master
+          mkdir -p /tmp/io/otECLM/main
+          cp -r doc/build/html/* /tmp/io/otECLM/main
           cd /tmp/io
           touch .nojekyll
           git config user.email "support@gh.com"
