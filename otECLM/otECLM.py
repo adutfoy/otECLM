@@ -195,7 +195,7 @@ class ECLM(object):
               0 \\leq  d_R   = -\\dfrac{\\sqrt{1-c_{co}}}{\\Phi^{-1}\\left( \\dfrac{P_t-P_x}{\\pi} \\right)}
         \\end{array}
 
-    Assuming that :math:`P_t \\leq \frac{1}{2}`, we can write the constraints as:
+    Assuming that :math:`P_t \\leq \\frac{1}{2}`, we can write the constraints as:
 
     .. math::
 
