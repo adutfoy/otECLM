@@ -1,7 +1,7 @@
 otECLM module
 =============
 
-ottemplate is an OpenTURNS module. It allows the treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load Model (ECLM) .
+otECLM is an OpenTURNS module. It allows the treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load Model (ECLM) .
 
 
 Build from source
@@ -11,7 +11,7 @@ Get source:
 
 .. code-block:: shell
 
-    $ git clone https://www.github.com/sofianehaddad/otECLMpython.git
+    $ git clone https://www.github.com/adutfoy/otECLMpython.git
 
 
 The install procedure is performed as follows:
