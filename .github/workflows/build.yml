@@ -4,7 +4,7 @@ jobs:
   conda-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniforge-version: latest
