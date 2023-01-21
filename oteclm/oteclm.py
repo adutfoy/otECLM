@@ -2,7 +2,6 @@ import numpy as np
 import openturns as ot
 import openturns.viewer as otView
 import math as math
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from time import time
 import tqdm
 
@@ -260,12 +259,13 @@ class ECLM(object):
     """
 
     
-    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=5):
+    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=5, verbose=False):
         # set attribute
         self.totalImpactVector = totalImpactVector
         self.integrationAlgo = integrationAlgo
         self.nIntervals = nIntervals
         self.n = self.totalImpactVector.getSize()-1
+        self.verbose = verbose
         # Mankamo Param: (P_t, P_x, C_{co}, C_x)
         self.MankamoParameter = None
         # GeneralParam: (pi, d_b, d_x, d_R, y_{xm})
@@ -315,7 +315,6 @@ class ECLM(object):
         The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. 
         """
 
-        print("X=", ot.Point(X))
         if X[0] <= 0.0:
             return False
 
@@ -326,10 +325,9 @@ class ECLM(object):
         value = True
         for r in res:
             value = value and (r > 0.0)
-        print("  x=", x, "res=", res, "value=", value)
         return value
 
-    def computeValidMankamoStartingPoint(self, Cx, verbose=False):
+    def computeValidMankamoStartingPoint(self, Cx):
         r"""
         Gives a point :math:`(P_x, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
 
@@ -342,9 +340,6 @@ class ECLM(object):
         -------
         validPoint : :class:`~openturns.Point`
             A valid point  :math:`(P_x, C_{co}, C_x)` verifying the constraints.
-        verbose : bool
-            if True, gives the possible range of  :math:`(P_x, C_{co})`.
-
 
         Notes
         -----
@@ -363,7 +358,7 @@ class ECLM(object):
         # X respects the constraints if:
         # Constraint 1 :  Px < terme_min 
         # Constraint 2 : Cx > Cco
-        if verbose: 
+        if self.verbose: 
             print('Px must be less than ', terme_min)
             print('Cco must be less than ',  Cx)
 
@@ -375,9 +370,9 @@ class ECLM(object):
         logPx, Cco, Cx = X
 
         # X is not in the definition domain of PEG
-        #print('self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)) = ', self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)))
         if not self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)):
-            print("X=", ot.Point(X), "does not satisfy the Mankamo constraints")
+            if self.verbose:
+                print("X=", ot.Point(X), "does not satisfy the Mankamo constraints")
             return [-ot.SpecFunc.LogMaxScalar]
 
         
@@ -391,11 +386,10 @@ class ECLM(object):
                 val = self.computePEG(k)
                 log_PEG_k = math.log(val)
                 S += self.totalImpactVector[k] * log_PEG_k
-        #print('logVrais_Mankamo, S : logPx, Cco, Cx = ', logPx, Cco, Cx, S)
         return [S]
     
 
-    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood, verbose):
+    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood):
         r"""
         Estimates the maximum likelihood (general and Mankamo) parameters under the Mankamo assumption.
 
@@ -405,8 +399,6 @@ class ECLM(object):
             Starting point :math:`(P_x, C_{co}, C_x)` for the optimization problem.
         visuLikelihood : Bool
             Produces the graph of the log-likelihood function at the optimal point.
-        verbose : Bool
-            Verbose level of the algorithm.
 
         Returns
         -------
@@ -433,12 +425,13 @@ class ECLM(object):
         optimPb.setInequalityConstraint(self.MankamoConstraints)
         # bounds sur (logPx, Cco, Cx)
         boundsParam = ot.Interval([-35, self.eps, self.eps], [math.log(self.Pt), 1.0-self.eps, 1.0-self.eps])
-        print('boundsParam = ', boundsParam)
+        if self.verbose:
+            print('boundsParam = ', boundsParam)
         optimPb.setBounds(boundsParam)
         # algo Cobyla pour ne pas avoir les gradients
         myAlgo = ot.Cobyla(optimPb)
-        myAlgo.setVerbose(verbose)
-        if verbose:
+        myAlgo.setVerbose(self.verbose)
+        if self.verbose:
             ot.Log.Show(ot.Log.ALL)
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
@@ -451,8 +444,8 @@ class ECLM(object):
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
         if not self.verifyMankamoConstraints(startingPoint):        
-            startingPoint = self.computeValidMankamoStartingPoint(0.7, verbose)
-            if verbose:
+            startingPoint = self.computeValidMankamoStartingPoint(0.7)
+            if self.verbose:
                 print('Changed starting point : ', startingPoint)
         # startPoint = [logPx, Cco, Cx]
         startPoint = [math.log(startingPoint[0]), startingPoint[1], startingPoint[2]]
@@ -499,11 +492,9 @@ class ECLM(object):
                 # pour dessiner la contrainte suivante 
                 # (logPx, Cx) --> min(terme1, terme2, terme3) - logPx
 
-                #print('-math.sqrt(1-Cx) = ', -math.sqrt(1-Cx))
                 terme1 = ot.DistFunc.pNormal(-math.sqrt(1 - Cx))
                 terme2 = (self.Pt - 0.5) / (1 - 1 / (2 * terme1))
                 terme3 = self.Pt
-                #print('terme1, terme2, terme3 = ', terme1, terme2, terme3)
 
                 # return un Point
                 return [min(math.log(terme1), math.log(terme2), math.log(terme3))-logPx]
@@ -724,11 +715,11 @@ class ECLM(object):
         """
 
         Pt, Px, Cco, Cx = mankamoParam
-        pi_weight = 1- Px/ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-        db = -math.sqrt(Cco)/ot.DistFunc.qNormal((Pt-Px)/pi_weight)
-        dR = -math.sqrt(1-Cco)/ot.DistFunc.qNormal((Pt-Px)/pi_weight)
-        dx = dR*math.sqrt(Cx/(1-Cx))
-        yxm = 1-dR
+        pi_weight = 1.0 - Px / ot.DistFunc.pNormal(-math.sqrt(1.0 - Cx))
+        db = -math.sqrt(Cco) / ot.DistFunc.qNormal((Pt - Px) / pi_weight)
+        dR = -math.sqrt(1.0 -Cco) / ot.DistFunc.qNormal((Pt - Px) / pi_weight)
+        dx = dR * math.sqrt(Cx / (1.0 - Cx))
+        yxm = 1.0 - dR
 
         return [pi_weight, db, dx, dR, yxm]
 
@@ -771,36 +762,29 @@ class ECLM(object):
         yMin_x = val_min * dx + y_xm
         yMax_x = val_max * dx + y_xm
 
-        def kernel_b(yPoint):
-            y = yPoint[0]
-            if not ot.SpecFunc.IsNormal(y):
-                print("y=", y)
-            temp = ot.DistFunc.pNormal((y - 1.0) / dR)
-            if temp > 0.0 and temp < 1.0:
-                terme1 = ot.DistFunc.logdNormal(y / db) - math.log(db)
-                terme2 = k * math.log(temp)
-                # tail CDF
-                terme3 = (self.n - k) * math.log1p(-temp)
-                return [math.exp(terme1 + terme2 + terme3)]
-            else:
-                return [0.0]
+        inputs   = ["y"]
+        outputs  = ["z"]
+        preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
+        preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
+        # Kernel b
+        # If 0<k<n, the Phi^k(1-Phi)^{n-k} term is zero if either Phi=0 or Phi=1
+        # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
+        # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
+        factor = ""
+        if k > 0:
+            factor += " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
+        if k < self.n:
+            factor += " * (erf_yt < 0.5 ? (0.5 - erf_yt)^" + str(self.n - k) + " : 0.0)"
+        formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
+        formula += "z := phib"
+        formula += factor + ";"
+        maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
 
-        def kernel_x(yPoint):
-            y = yPoint[0]
-            if not ot.SpecFunc.IsNormal(y):
-                print("y=", y)
-            temp = ot.DistFunc.pNormal((y - 1.0) / dR)
-            if temp > 0.0 and temp < 1.0:
-                terme1 = ot.DistFunc.logdNormal((y - y_xm) / dx) - math.log(dx)
-                terme2 = k * math.log(temp)
-                # tail CDF
-                terme3 = (self.n - k) * math.log1p(-temp)
-                return [math.exp(terme1 + terme2 + terme3)]
-            else:
-                return [0.0]            
-
-        maFctKernel_b = ot.PythonFunction(1, 1, kernel_b)
-        maFctKernel_x = ot.PythonFunction(1, 1, kernel_x)
+        # Kernel X
+        formula = preamble + "var phix := " + str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ");"
+        formula += "z := phix"
+        formula += factor + ";"
+        maFctKernelX = ot.SymbolicFunction(inputs, outputs, formula)
 
         # base load part integration
         int_b = 0.0
@@ -809,7 +793,7 @@ class ECLM(object):
                 yMin_i = yMin_b + i * (yMax_b - yMin_b) / self.nIntervals
                 yMax_i = yMin_b + (i + 1) * (yMax_b - yMin_b) / self.nIntervals
                 interval = ot.Interval(yMin_i, yMax_i)
-                int_b += self.integrationAlgo.integrate(maFctKernel_b, interval)[0]
+                int_b += self.integrationAlgo.integrate(maFctKernelB, interval)[0]
             int_b = pi_weight * int_b
         # extreme load part integration
         int_x = 0.0
@@ -818,7 +802,7 @@ class ECLM(object):
                 yMin_i = yMin_x + i * (yMax_x - yMin_x) / self.nIntervals
                 yMax_i = yMin_x + (i + 1) * (yMax_x - yMin_x) / self.nIntervals
                 interval = ot.Interval(yMin_i, yMax_i)
-                int_x += self.integrationAlgo.integrate(maFctKernel_x, ot.Interval(yMin_i, yMax_i))[0]
+                int_x += self.integrationAlgo.integrate(maFctKernelX, ot.Interval(yMin_i, yMax_i))[0]
             int_x = (1-pi_weight) * int_x
 
         PEG = int_b + int_x
@@ -866,13 +850,11 @@ class ECLM(object):
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         # PSG(1|n) = Pb + Px
-        val_b = math.sqrt(db*db+dR*dR)
-        val_x = math.sqrt(dx*dx+dR*dR)
-        Pb = pi_weight * ot.DistFunc.pNormal(-1.0/val_b)
-        Px = (1-pi_weight) * ot.DistFunc.pNormal(-(1-y_xm)/val_x)
-        return Pb+Px
-
-
+        val_b = math.sqrt(db * db + dR * dR)
+        val_x = math.sqrt(dx * dx + dR * dR)
+        Pb = pi_weight * ot.DistFunc.pNormal(-1.0 / val_b)
+        Px = (1.0 - pi_weight) * ot.DistFunc.pNormal(-(1.0 - y_xm) / val_x)
+        return Pb + Px
 
 
     def computePSG(self, k):
@@ -900,7 +882,7 @@ class ECLM(object):
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         # specal computation on that case
-        if k==1:
+        if k == 1:
             return self.computePSG1()
 
         # range numerique de la Normal()
@@ -909,29 +891,26 @@ class ECLM(object):
 
         def kernel_b(yPoint):
             y = yPoint[0]
-            terme1 = pi_weight/db * ot.DistFunc.dNormal(y/db)
-            terme2 = math.pow(ot.DistFunc.pNormal((y-1)/dR), k)
-            #print('terme1, terme2 = ', terme1, terme2)
+            terme1 = pi_weight / db * ot.DistFunc.dNormal(y / db)
+            terme2 = math.pow(ot.DistFunc.pNormal((y - 1.0) / dR), k)
             return [terme1 * terme2]
 
         def kernel_x(yPoint):
             y = yPoint[0]
-            terme1 = (1-pi_weight)/dx*ot.DistFunc.dNormal((y-y_xm)/dx)
-            terme2 = math.pow(ot.DistFunc.pNormal((y-1)/dR), k)
-            #print('terme1, terme2 = ', terme1, terme2)
+            terme1 = (1.0 - pi_weight) / dx * ot.DistFunc.dNormal((y - y_xm) / dx)
+            terme2 = math.pow(ot.DistFunc.pNormal((y - 1.0) / dR), k)
             return [terme1 * terme2]
 
-        maFctKernel_b = ot.PythonFunction(1,1,kernel_b)
-        maFctKernel_x = ot.PythonFunction(1,1,kernel_x)
+        maFctKernel_b = ot.PythonFunction(1, 1, kernel_b)
+        maFctKernel_x = ot.PythonFunction(1, 1, kernel_x)
 
         # le range num de la loi Normale() est [val_min, val_max] = [-7.65, 7.65]
-        yMin_b = max(val_min*db, 1.0+dR*val_min)
-        yMax_b = min(val_max*db, 1.0+dR*val_max)
+        yMin_b = max(val_min * db, 1.0 + dR * val_min)
+        yMax_b = min(val_max * db, 1.0 + dR * val_max)
         myInterval_b = ot.Interval(yMin_b, yMax_b)
-        yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
-        yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
+        yMin_x = max(val_min * dx + y_xm, 1.0 + dR * val_min)
+        yMax_x = min(val_max * dx + y_xm, 1.0 + dR * val_max)
         myInterval_x = ot.Interval(yMin_x, yMax_x)
-        #print('myInterval_b, myInterval_x = ', myInterval_b, myInterval_x)
         # integrate retourne un Point
         # integrale partie b
         int_b = 0.0
@@ -941,12 +920,12 @@ class ECLM(object):
         int_x = 0.0
         if yMin_x < yMax_x:
             int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
-            #print('int_b, int_x,  = ', int_b, int_x)
 
         PSG = int_b + int_x
         return PSG
 
-    def  computePSGall(self):
+
+    def computePSGall(self):
         r"""
         Computes all the :math:`\mathrm{PSG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
@@ -961,7 +940,7 @@ class ECLM(object):
         """
 
         PSG_list = list()
-        for k in range(self.n+1):
+        for k in range(self.n + 1):
             PSG_list.append(self.computePSG(k))
         return PSG_list
 
@@ -991,7 +970,7 @@ class ECLM(object):
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         PEG = self.computePEG(k)
-        PES = math.comb(self.n,k)*PEG
+        PES = math.comb(self.n, k) * PEG
         return PES
 
 
@@ -1010,7 +989,7 @@ class ECLM(object):
         """
 
         PES_list = list()
-        for k in range(self.n+1):
+        for k in range(self.n + 1):
             PES_list.append(self.computePES(k))
         return PES_list
 
@@ -1034,12 +1013,10 @@ class ECLM(object):
         The  :math:`\mathrm{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\mathrm{PES}(i|n)` probability is computed using :eq:`PES_red`.
         """
 
-
         PTS = 0.0
-        for i in range(k,self.n+1):
+        for i in range(k,self.n + 1):
             PTS += self.computePES(i)
         return PTS
-
 
 
     def  computePTSall(self):
@@ -1057,7 +1034,7 @@ class ECLM(object):
         """
 
         PTS_list = list()
-        for k in range(self.n+1):
+        for k in range(self.n + 1):
             PTS_list.append(self.computePTS(k))
         return PTS_list
 
@@ -1066,11 +1043,12 @@ class ECLM(object):
         point, startingPoint = inP
         vectImpactTotal = ot.Indices([int(round(x)) for x in point])
         self.setTotalImpactVector(vectImpactTotal)
-        res = self.estimateMaxLikelihoodFromMankamo(startingPoint, False, False)
+        res = self.estimateMaxLikelihoodFromMankamo(startingPoint, False)
         resMankamo = res[0]
         resGeneral = res[1]
         resFinal = resMankamo + resGeneral
         return resFinal
+
 
     def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, blockSize, fileNameRes):
         r"""
@@ -1095,56 +1073,128 @@ class ECLM(object):
 
         The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
-        ot.TBB.Disable()
-        initialTotalImpactVector = self.totalImpactVector
-        # Nombre d'échantillons bootstrap à générer
-        print('boostrap param : ')
-        print('Nbootstrap, blockSize, fileNameRes  = ', Nbootstrap, blockSize, fileNameRes)
-        # Sollicitations number"
-        N = sum(self.totalImpactVector)
+        myStudy = ot.Study('myECLM.xml')
+        myStudy.add('integrationAlgo', self.integrationAlgo)
+        myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
+        myStudy.add('startingPoint', ot.Point(startingPoint))
+        myStudy.save()
 
-        # Empirical distribution of the number of sets of failures among N sollicitations
-        MultiNomDist = ot.Multinomial(N, [v/N for v in self.totalImpactVector])
+        import os
+        directory_path = os.getcwd()
+        fileName = directory_path + "/script_bootstrap_ParamFromMankamo.py"
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        with open(fileName, "w") as f:
+            f.write("#############################\n"\
+"# Ce script :\n"\
+"#    - lance un bootstrap sur la loi Multinomiale paramétrée par le vecteur d'impact total initial sous l'hypothèse de Mankamo\n"\
+"#     - calcule les estimateurs de max de vraisemblance:\n"\
+"#       de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] avec  yxm_optim = 1-dR_optim\n"\
+"#     - sauve le sample de dimension 9 dans filenameRes: de type adresse/fichier.csv\n"\
+"#    - le fichier fileNameInput contient les arguments: vectImpactTotal, startingPoint: de type adresse/fichier.xml\n"\
+"\n"\
+"\n"\
+"import openturns as ot\n"\
+"from oteclm import ECLM\n"\
+"\n"\
+"from time import time\n"\
+"import sys\n"\
+"\n"\
+"from multiprocessing import Pool\n"\
+"# barre de progression\n"\
+"import tqdm\n"\
+"\n"\
+"# Ot Parallelisme desactivated\n"\
+"ot.TBB.Disable()\n"\
+"\n"\
+"# Nombre d'échantillons bootstrap à générer\n"\
+"Nbootstrap = int(sys.argv[1])\n"\
+"# taille des blocs\n"\
+"blockSize = int(sys.argv[2])\n"\
+"# Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+"fileNameRes = str(sys.argv[3])\n"\
+"\n"\
+"print('boostrap param : ')\n"\
+"print('Nbootstrap, blockSize, fileNameRes  = ', Nbootstrap, blockSize, fileNameRes )\n"\
+"\n"\
+"\n"\
+"# Import de  vectImpactTotal et startingPoint\n"\
+"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy.load()\n"\
+"integrationAlgo = ot.IntegrationAlgorithm()\n"\
+"myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+"totalImpactVector = ot.Indices()\n"\
+"myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"startingPoint = ot.Point()\n"\
+"myStudy.fillObject('startingPoint', startingPoint)\n"\
+"\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"\n"\
+"# Sollicitations number\n"\
+"N = sum(totalImpactVector)\n"\
+"\n"\
+"# Empirical distribution of the number of sets of failures among N sollicitations\n"\
+"MultiNomDist = ot.Multinomial(N, [v/N for v in totalImpactVector])\n"\
+"\n"\
+"def job(inP):\n"\
+"    point, startingPoint = inP\n"\
+"    vectImpactTotal = ot.Indices([int(round(x)) for x in point])\n"\
+"    myECLM.setTotalImpactVector(vectImpactTotal)\n"\
+"    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
+"    resMankamo = res[0]\n"\
+"    resGeneral = res[1]\n"\
+"    resFinal = resMankamo + resGeneral\n"\
+"    return resFinal\n"\
+"\n"\
+"Ndone = 0\n"\
+"block = 0\n"\
+"t00 = time()\n"\
+"\n"\
+"\n"\
+"#  Si des calculs ont déjà été faits, on les importe:\n"\
+"try:\n"\
+"    print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
+"    allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    print('import ok')\n"\
+"except:\n"\
+"    print('No previous results')\n"\
+"    # the size of res is 9\n"\
+"    allResults = ot.Sample(0, 9)\n"\
+"\n"\
+"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
+"\n"\
+"# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
+"Nskip = allResults.getSize()\n"\
+"N_remainder = Nbootstrap - Nskip\n"\
+"print('Skip = ', Nskip)\n"\
+"for i in range(Nskip):\n"\
+"    noMatter = MultiNomDist.getRealization()\n"\
+"while Ndone < N_remainder:\n"\
+"    block += 1\n"\
+"     # Nombre de calculs qui restent à faire\n"\
+"    size = min(blockSize, N_remainder - Ndone)\n"\
+"    print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nbootstrap)\n"\
+"    t0 = time()\n"\
+"    allInputs = [[MultiNomDist.getRealization(), startingPoint] for i in range(size)]\n"\
+"    t1 = time()\n"\
+"    print('t=%g' % (t1 - t0), 's')\n"\
+"\n"\
+"    t0 = time()\n"\
+"    with Pool() as pool:\n"\
+"        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
+"    t1 = time()\n"\
+"    print('t=%g' % (t1 - t0), 's', 't (start)=%g' %(t1 - t00), 's')\n"\
+"    Ndone += size\n"\
+"    # Sauvegarde apres chaque bloc\n"\
+"    allResults.exportToCSVFile(fileNameRes)\n"\
+"   ")
 
-        Ndone = 0
-        block = 0
-        t00 = time()
+        command =  'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nbootstrap, blockSize, fileNameRes)
+        os.system(command)
+        os.remove(fileName)
+        os.remove("myECLM.xml")
 
-        #  Si des calculs ont déjà été faits, on les importe
-        try:
-            print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))
-            allResults = ot.Sample.ImportFromCSVFile(fileNameRes)
-            print('import ok')
-        except:
-            print('No previous results')
-            description = ['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm']
-            allResults = ot.Sample(0, len(description))
-            allResults.setDescription(description)
-
-        # On passe les Nskip points déjà calculés (pas de pb si Nskip=0)
-        Nskip = allResults.getSize()
-        N_remainder = Nbootstrap - Nskip
-        print('Skip = ', Nskip)
-        for i in range(Nskip):
-            noMatter = MultiNomDist.getRealization()
-
-        pbar = tqdm.tqdm(total=int(math.ceil(N_remainder / blockSize)))
-        while Ndone < N_remainder:
-            block += 1
-            # Nombre de calculs qui restent à faire
-            size = min(blockSize, N_remainder - Ndone)
-            allInputs = [[MultiNomDist.getRealization(), startingPoint] for i in range(size)]
-            with ProcessPoolExecutor(max_workers=blockSize) as executor:
-                futures = {executor.submit(self.jobEstimateBootstrapParamSampleFromMankamo, x): x for x in allInputs}
-                # for future in tqdm.tqdm(as_completed(futures), total=len(futures)):
-                for future in as_completed(futures):
-                    allResults.add(future.result())
-            pbar.update(1)
-            Ndone += size
-            # Sauvegarde apres chaque bloc
-            allResults.exportToCSVFile(fileNameRes)
-        pbar.close()
-        self.setTotalImpactVector(initialTotalImpactVector)
 
     def computeECLMProbabilitiesFromMankano(self, blockSize, fileNameInput, fileNameRes):
         r"""
@@ -1332,8 +1382,8 @@ class ECLM(object):
         """
 
         sampleParamAll = ot.Sample.ImportFromCSVFile(fileNameSample)
-        sampleParamRed = sampleParamAll.getMarginal([0,1,2,3])
-        sampleParamInit = sampleParamAll.getMarginal([4,5,6,7,8])
+        sampleParamRed = sampleParamAll.getMarginal([0, 1, 2, 3])
+        sampleParamInit = sampleParamAll.getMarginal([4, 5, 6, 7, 8])
         descParam = sampleParamAll.getDescription()
 
         # Graphe Pairs sur le paramétrage  [Pt, Px_optim, Cco_optim, Cx_optim]
@@ -1358,7 +1408,7 @@ class ECLM(object):
             graph.add(KS_dist.drawPDF())
             graph.setColors(['blue', 'red'])
             graph.setLegends(['Histo', 'KS'])
-            graph.setLegendPosition('topright')
+$            graph.setLegendPosition('topright')
             graph.setXTitle(descParam[k])
             graphMarg_list.append(graph)
 
@@ -1409,29 +1459,29 @@ class ECLM(object):
         desc = sampleProbaAll.getDescription()
         dim = sampleProbaAll.getDimension()
         # dim = 4(n+1)
-        n = int(dim/4)-1
-        samplePEG = sampleProbaAll.getMarginal([k for k in range(n+1)])
+        n = dim // 4 - 1
+        samplePEG = sampleProbaAll.getMarginal([k for k in range(n + 1)])
         descPEG = samplePEG.getDescription()
-        samplePSG = sampleProbaAll.getMarginal([k for k in range(n+1, 2*n+2)])
+        samplePSG = sampleProbaAll.getMarginal([k for k in range(n + 1, 2 * n + 2)])
         descPSG = samplePSG.getDescription()
-        samplePES = sampleProbaAll.getMarginal([k for k in range(2*n+2, 3*n+3)])
+        samplePES = sampleProbaAll.getMarginal([k for k in range(2 * n + 2, 3 * n + 3)])
         descPES = samplePES.getDescription()
-        samplePTS = sampleProbaAll.getMarginal([k for k in range(3*n+3, 4*n+4)])
+        samplePTS = sampleProbaAll.getMarginal([k for k in range(3 * n + 3, 4 * n + 4)])
         descPTS = samplePTS.getDescription()
 
         descPairs = ot.Description()
 
         # Graphe Pairs sur les PEG(k|n)
-        graphPairsPEG = ot.VisualTest.DrawPairs(samplePEG.getMarginal([k for k in range(kMax+1)]))
+        graphPairsPEG = ot.VisualTest.DrawPairs(samplePEG.getMarginal([k for k in range(kMax + 1)]))
         descPairs.add('Pairs_PEG')
         # Graphe Pairs sur les PSG(k|n)
-        graphPairsPSG = ot.VisualTest.DrawPairs(samplePSG.getMarginal([k for k in range(kMax+1)]))
+        graphPairsPSG = ot.VisualTest.DrawPairs(samplePSG.getMarginal([k for k in range(kMax + 1)]))
         descPairs.add('Pairs_PSG')
         # Graphe Pairs sur les PES(k|n)
-        graphPairsPES = ot.VisualTest.DrawPairs(samplePES.getMarginal([k for k in range(kMax+1)]))
+        graphPairsPES = ot.VisualTest.DrawPairs(samplePES.getMarginal([k for k in range(kMax + 1)]))
         descPairs.add('Pairs_PES')
         # Graphe Pairs sur les PTS(k|n)
-        graphPairsPTS = ot.VisualTest.DrawPairs(samplePTS.getMarginal([k for k in range(kMax+1)]))
+        graphPairsPTS = ot.VisualTest.DrawPairs(samplePTS.getMarginal([k for k in range(kMax + 1)]))
         descPairs.add('Pairs_PTS')
 
         # Comparaison  PEG(k|n) <= PES(k|n) <= PTS(k|n)
@@ -1539,7 +1589,6 @@ class ECLM(object):
         return [graphPairsPEG, graphPairsPSG, graphPairsPES, graphPairsPTS], graphPEG_PES_PTS_list, graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list, [descPairs, descPEG_PES_PTS, descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
 
-
     def analyseDistECLMProbabilities(self, fileNameSample, kMax, confidenceLevel, factoryColl):
         r"""
         Fits  distribution on ECL probabilities sample.
@@ -1575,13 +1624,13 @@ class ECLM(object):
         dim = sampleProbaAll.getDimension()
         # dim = 4(n+1)
         n = int(dim/4)-1
-        samplePEG = sampleProbaAll.getMarginal([k for k in range(n+1)])
+        samplePEG = sampleProbaAll.getMarginal([k for k in range(n + 1)])
         descPEG = samplePEG.getDescription()
-        samplePSG = sampleProbaAll.getMarginal([k for k in range(n+1, 2*n+2)])
+        samplePSG = sampleProbaAll.getMarginal([k for k in range(n + 1, 2 * n + 2)])
         descPSG = samplePSG.getDescription()
-        samplePES = sampleProbaAll.getMarginal([k for k in range(2*n+2, 3*n+3)])
+        samplePES = sampleProbaAll.getMarginal([k for k in range(2 * n + 2, 3 * n + 3)])
         descPES = samplePES.getDescription()
-        samplePTS = sampleProbaAll.getMarginal([k for k in range(3*n+3, 4*n+4)])
+        samplePTS = sampleProbaAll.getMarginal([k for k in range(3 * n + 3, 4 * n + 4)])
         descPTS = samplePTS.getDescription()
 
         KS = ot.KernelSmoothing()
@@ -1595,8 +1644,8 @@ class ECLM(object):
         IC_PES_list = list()
         IC_PTS_list = list()
 
-        quantSup = 0.5 + confidenceLevel/2
-        quantInf = 0.5 - confidenceLevel/2
+        quantSup = 0.5 + confidenceLevel / 2
+        quantInf = 0.5 - confidenceLevel / 2
 
         graphMargPEG_list = list()
         graphMargPSG_list = list()
@@ -1692,7 +1741,7 @@ class ECLM(object):
                 try:
                     dist = factoryColl[i].build(samplePEG_k)
                     draw = dist.drawPDF().getDrawable(0)
-                    draw.setColor(colors[i+2])
+                    draw.setColor(colors[i + 2])
                     draw.setLegend(dist.getName())
                     graph.add(draw)
                 except:
@@ -1742,7 +1791,7 @@ class ECLM(object):
                 try:
                     dist = factoryColl[i].build(samplePES_k)
                     draw = dist.drawPDF().getDrawable(0)
-                    draw.setColor(colors[i+2])
+                    draw.setColor(colors[i + 2])
                     draw.setLegend(dist.getName())
                     graph.add(draw)
                 except:
@@ -1782,8 +1831,6 @@ class ECLM(object):
         return [IC_PEG_list, IC_PSG_list, IC_PES_list, IC_PTS_list], [graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list] , [descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
 
-
-
     def computeKMaxPTS(self, p):
         r"""
         Computes the minimal  multipicity of the common cause failure with a probability greater than a given threshold.
@@ -1810,11 +1857,10 @@ class ECLM(object):
         The probability :math:`\mathrm{PTS}(k|n)` is computed using :eq:`PTS_red`.
         """
 
-        k=0
+        k = 0
         while self.computePTS(k) > p:
-            k+=1
-        return k-1
-
+            k += 1
+        return k - 1
 
 
     def computeAnalyseKMaxSample(self, p, blockSize, fileNameInput, fileNameRes):
@@ -2000,14 +2046,14 @@ class ECLM(object):
         self.totalImpactVector = totalImpactVector
 
         # Remise à jour du n
-        self.n = totalImpactVector.getSize()-1
-        
+        self.n = totalImpactVector.getSize() - 1
+
         #Remise à jour Pt
         N = sum(totalImpactVector)
         Pt = 0.0
-        for i in range(1,self.n+1):
-            Pt += i*totalImpactVector[i]
-        Pt /= self.n*N
+        for i in range(1,self.n + 1):
+            Pt += i * totalImpactVector[i]
+        Pt /= self.n * N
         self.Pt = Pt
 
 
@@ -2108,6 +2154,7 @@ class ECLM(object):
 
         return self.generalParameter
 
+
     def getN(self):
         r"""
         Accessor to the CCF group size :math:`n`.
@@ -2119,6 +2166,7 @@ class ECLM(object):
         """
 
         return self.n
+
 
     def getPt(self):
         r"""
