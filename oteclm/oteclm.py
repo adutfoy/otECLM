@@ -36,7 +36,7 @@ class ECLM(object):
 
     .. math::
 
-        f_S(s) = \pi \varphi \left(\dfrac{s-\mu_b}{\sigma_b}\right) + (1-\pi) \varphi \left(\dfrac{s-\mu_x}{\sigma_x}\right)\quad \forall s \in \mathbb{R}
+        f_S(s) = \pi \dfrac{1}{\sigma_b} \varphi \left(\dfrac{s-\mu_b}{\sigma_b}\right) + (1-\pi) \dfrac{1}{\sigma_x} \varphi \left(\dfrac{s-\mu_x}{\sigma_x}\right)\quad \forall s \in \mathbb{R}
 
     We assume that the resistance :math:`R` is modelled as a normal distribution with  mean and variance :math:`(\mu_R, \sigma_R^2)`. We denote by :math:`p_R` and :math:`F_R` its density and its cumulative density function.
 
