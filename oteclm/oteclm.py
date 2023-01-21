@@ -1575,14 +1575,19 @@ class ECLM(object):
             leg = ot.Description(1,'Histo')
             graph.add(KS_dist_PEG_k.drawPDF())
             leg.add('KS')
+            graph.setColors(colors[0:2])
+            graph.setLegends(leg)
             nbFact = len(factoryColl)
             for i in range(nbFact):
-                dist = factoryColl[i].build(samplePEG_k)
-                graph.add(dist.drawPDF())
-                leg.add(dist.getName())
+                try:
+                    dist = factoryColl[i].build(samplePEG_k)
+                    draw = dist.drawPDF().getDrawable(0)
+                    draw.setColor(colors[i+2])
+                    draw.setLegend(dist.getName())
+                    graph.add(draw)
+                except:
+                    pass
 
-            graph.setColors(colors[0:nbFact+2])
-            graph.setLegends(leg)
             graph.setLegendPosition('topright')
             graph.setXTitle(descPEG[k])
             graph.setTitle('PEG('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PEG_k.getName()))
@@ -1595,14 +1600,19 @@ class ECLM(object):
             leg = ot.Description(1,'Histo')
             graph.add(KS_dist_PSG_k.drawPDF())
             leg.add('KS')
+            graph.setColors(colors[0:2])
+            graph.setLegends(leg)
             nbFact = len(factoryColl)
             for i in range(nbFact):
-                dist = factoryColl[i].build(samplePSG_k)
-                graph.add(dist.drawPDF())
-                leg.add(dist.getName())
-
-            graph.setColors(colors[0:nbFact+2])
-            graph.setLegends(leg)
+                try:
+                    dist = factoryColl[i].build(samplePSG_k)
+                    draw = dist.drawPDF().getDrawable(0)
+                    draw.setColor(colors[i+2])
+                    draw.setLegend(dist.getName())
+                    graph.add(draw)
+                except:
+                    pass
+                    
             graph.setLegendPosition('topright')
             graph.setXTitle(descPSG[k])
             graph.setTitle('PSG('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PSG_k.getName()))
@@ -1615,14 +1625,19 @@ class ECLM(object):
             leg = ot.Description(1,'Histo')
             graph.add(KS_dist_PES_k.drawPDF())
             leg.add('KS')
+            graph.setColors(colors[0:2])
+            graph.setLegends(leg)
             nbFact = len(factoryColl)
             for i in range(nbFact):
-                dist = factoryColl[i].build(samplePES_k)
-                graph.add(dist.drawPDF())
-                leg.add(dist.getName())
+                try:
+                    dist = factoryColl[i].build(samplePES_k)
+                    draw = dist.drawPDF().getDrawable(0)
+                    draw.setColor(colors[i+2])
+                    draw.setLegend(dist.getName())
+                    graph.add(draw)
+                except:
+                    pass
 
-            graph.setColors(colors[0:nbFact+2])
-            graph.setLegends(leg)
             graph.setLegendPosition('topright')
             graph.setXTitle(descPES[k])
             graph.setTitle('PES('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PES_k.getName()))
@@ -1635,14 +1650,19 @@ class ECLM(object):
             leg = ot.Description(1,'Histo')
             graph.add(KS_dist_PTS_k.drawPDF())
             leg.add('KS')
+            graph.setColors(colors[0:2])
+            graph.setLegends(leg)
             nbFact = len(factoryColl)
             for i in range(nbFact):
-                dist = factoryColl[i].build(samplePTS_k)
-                graph.add(dist.drawPDF())
-                leg.add(dist.getName())
+                try:
+                    dist = factoryColl[i].build(samplePTS_k)
+                    draw = dist.drawPDF().getDrawable(0)
+                    draw.setColor(colors[i+2])
+                    draw.setLegend(dist.getName())
+                    graph.add(draw)
+                except:
+                    pass
 
-            graph.setColors(colors[0:nbFact+2])
-            graph.setLegends(leg)
             graph.setLegendPosition('topright')
             graph.setXTitle(descPTS[k])
             graph.setTitle('PTS('+str(k) + '|' + str(n) + ') - best model : ' +  str(best_model_PTS_k.getName()))
