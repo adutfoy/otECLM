@@ -41,7 +41,7 @@ tags.add('nbsphinx')
 extensions.append('IPython.sphinxext.ipython_console_highlighting')
 
 autodoc_default_flags = ['members', 'inherited-members']
-intersphinx_mapping = {'python': ('http://openturns.github.io/openturns/1.18', 'openturns-objects.inv')}
+intersphinx_mapping = {'python': ('http://openturns.github.io/openturns/1.20', 'openturns-objects.inv')}
 autosummary_generate = True
 
 numpydoc_show_class_members = True
