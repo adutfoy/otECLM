@@ -11,7 +11,7 @@ jobs:
       - name: Build
         shell: bash -l {0}
         run: |
-          conda install -y openturns pytest sphinx sphinx-gallery numpydoc pandoc
+          conda install -y openturns pytest sphinx sphinx-gallery numpydoc pandoc nbsphinx
           conda install -c conda-forge sphinx_rtd_theme
           python setup.py install
           pytest
