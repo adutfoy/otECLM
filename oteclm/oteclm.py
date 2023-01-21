@@ -5,7 +5,6 @@ import math as math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from time import time
 import tqdm
-from math import ceil
 
 class ECLM(object):
     r"""
@@ -261,10 +260,11 @@ class ECLM(object):
     """
 
     
-    def __init__(self, totalImpactVector, integrationAlgo):
+    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=5):
         # set attribute
         self.totalImpactVector = totalImpactVector
         self.integrationAlgo = integrationAlgo
+        self.nIntervals = nIntervals
         self.n = self.totalImpactVector.getSize()-1
         # Mankamo Param: (P_t, P_x, C_{co}, C_x)
         self.MankamoParameter = None
@@ -307,7 +307,7 @@ class ECLM(object):
 
         if Cx >1:
             return False
-        
+
         terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
         terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
         terme12_min = math.log(min(self.Pt, terme1, terme2))
@@ -348,8 +348,8 @@ class ECLM(object):
         if self.Pt > 0.5-self.eps:
             raise('Problem with Pt not < 0.5 or to close to 0.5!')
         
-        terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-        terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
+        terme1 = ot.DistFunc.pNormal(-math.sqrt(1 - Cx))
+        terme2 = (self.Pt - 0.5) / (1 - 1 / (2 * terme1))
         terme_min = min(self.Pt, terme1, terme2)
 
         # X respects the constraints if:
@@ -359,7 +359,7 @@ class ECLM(object):
             print('Px must be less than ', terme_min)
             print('Cco must be less than ',  Cx)
 
-        proposedPoint = ot.Point([terme_min/2, Cx/2, Cx])
+        proposedPoint = ot.Point([terme_min / 2, Cx / 2, Cx])
         return proposedPoint
 
 
@@ -369,7 +369,8 @@ class ECLM(object):
         # X is not in the definition domain of PEG
         #print('self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)) = ', self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)))
         if not self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)):
-            return [-ot.SpecFunc.MaxScalar]
+            print("X=", ot.Point(X), "does not satisfy the Mankamo constraints")
+            return [-ot.SpecFunc.LogMaxScalar]
 
         
         # variables (pi, db, dx, dR, y_xm=1-dR)
@@ -421,7 +422,7 @@ class ECLM(object):
             return [Cx - Cco]
 
         maFct_cont_Cco_Cx = ot.PythonFunction(3, 1, func_constraint_Cco_Cx)
-        maFctLogVrais_Mankamo = ot.PythonFunction(3,1, self.logVrais_Mankamo)
+        maFctLogVrais_Mankamo = ot.PythonFunction(3, 1, self.logVrais_Mankamo)
 
         def func_contraint_LogPx_Cx(X):
             logPx, Cco, Cx = X
@@ -459,11 +460,11 @@ class ECLM(object):
             ot.Log.Show(ot.Log.ALL)
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
-        myAlgo.setMaximumEvaluationNumber(100000)
-        myAlgo.setMaximumConstraintError(1e-5)
-        myAlgo.setMaximumAbsoluteError(1e-5)
-        myAlgo.setMaximumRelativeError(1e-4)
-        myAlgo.setMaximumResidualError(1e-5)
+        myAlgo.setMaximumEvaluationNumber(10000)
+        myAlgo.setMaximumConstraintError(1e-4)
+        myAlgo.setMaximumAbsoluteError(1e-4)
+        myAlgo.setMaximumRelativeError(1e-3)
+        myAlgo.setMaximumResidualError(1e-4)
 
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
@@ -757,65 +758,66 @@ class ECLM(object):
 
         # Numerical range of the  Normal() distribution
         val_min = -7.65
-        val_max = 7.65
+        val_max =  7.65
+
+        # Numerical integration interval
+        # base load
+        yMin_b = val_min * db
+        yMax_b = val_max * db
+
+        # extreme load
+        yMin_x = val_min * dx + y_xm
+        yMax_x = val_max * dx + y_xm
 
         def kernel_b(yPoint):
             y = yPoint[0]
             if not ot.SpecFunc.IsNormal(y):
                 print("y=", y)
-            terme1 = pi_weight/db * ot.DistFunc.dNormal(y/db)
-            temp = ot.DistFunc.pNormal((y-1)/dR)
-            terme2 = math.pow(temp, k)
-            # tail CDF
-            terme3 = math.pow(1.0-temp, self.n-k)
-            return [terme1 * terme2 * terme3]
+            temp = ot.DistFunc.pNormal((y - 1.0) / dR)
+            if temp > 0.0 and temp < 1.0:
+                terme1 = ot.DistFunc.logdNormal(y / db) - math.log(db)
+                terme2 = k * math.log(temp)
+                # tail CDF
+                terme3 = (self.n - k) * math.log1p(-temp)
+                return [math.exp(terme1 + terme2 + terme3)]
+            else:
+                return [0.0]
 
         def kernel_x(yPoint):
             y = yPoint[0]
-            terme1 = (1-pi_weight)/dx*ot.DistFunc.dNormal((y-y_xm)/dx)
-            temp = ot.DistFunc.pNormal((y-1)/dR)
-            terme2 = math.pow(temp, k)
-            # tail CDF
-            terme3 = math.pow(1.0-temp, self.n-k)
-            #print('(x) y=', y, 'terme1, terme2, terme3 = ', terme1, terme2, terme3)
-            return [terme1 * terme2 * terme3]
+            if not ot.SpecFunc.IsNormal(y):
+                print("y=", y)
+            temp = ot.DistFunc.pNormal((y - 1.0) / dR)
+            if temp > 0.0 and temp < 1.0:
+                terme1 = ot.DistFunc.logdNormal((y - y_xm) / dx) - math.log(dx)
+                terme2 = k * math.log(temp)
+                # tail CDF
+                terme3 = (self.n - k) * math.log1p(-temp)
+                return [math.exp(terme1 + terme2 + terme3)]
+            else:
+                return [0.0]            
 
-        maFctKernel_b = ot.PythonFunction(1,1,kernel_b)
-        maFctKernel_x = ot.PythonFunction(1,1,kernel_x)
+        maFctKernel_b = ot.PythonFunction(1, 1, kernel_b)
+        maFctKernel_x = ot.PythonFunction(1, 1, kernel_x)
 
-        # Numerical integration interval
-        # base load 
-        if k == 0:
-            yMin_b = val_min*db
-            yMax_b = min(val_max*db, 1.0+dR*val_max)
-        elif k == self.n:
-            yMin_b = max(val_min*db, 1.0+dR*val_min)
-            yMax_b = val_max*db
-        else:
-            yMin_b = max(val_min*db, 1.0+dR*val_min)
-            yMax_b = min(val_max*db, 1.0+dR*val_max)
-        myInterval_b = ot.Interval(yMin_b, yMax_b)
-        
-        # extreme load
-        if k == 0:
-            yMin_x = val_min*dx+y_xm
-            yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
-        elif k == self.n:
-            yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
-            yMax_x = val_max*dx+y_xm
-        else:
-            yMin_x = max(val_min*dx+y_xm, 1.0+dR*val_min)
-            yMax_x = min(val_max*dx+y_xm, 1.0+dR*val_max)
-        myInterval_x = ot.Interval(yMin_x, yMax_x)
-        
         # base load part integration
         int_b = 0.0
         if yMin_b < yMax_b:
-            int_b =  self.integrationAlgo.integrate(maFctKernel_b, myInterval_b)[0]
+            for i in range(self.nIntervals):
+                yMin_i = yMin_b + i * (yMax_b - yMin_b) / self.nIntervals
+                yMax_i = yMin_b + (i + 1) * (yMax_b - yMin_b) / self.nIntervals
+                interval = ot.Interval(yMin_i, yMax_i)
+                int_b += self.integrationAlgo.integrate(maFctKernel_b, interval)[0]
+            int_b = pi_weight * int_b
         # extreme load part integration
         int_x = 0.0
         if yMin_x < yMax_x:
-            int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
+            for i in range(self.nIntervals):
+                yMin_i = yMin_x + i * (yMax_x - yMin_x) / self.nIntervals
+                yMax_i = yMin_x + (i + 1) * (yMax_x - yMin_x) / self.nIntervals
+                interval = ot.Interval(yMin_i, yMax_i)
+                int_x += self.integrationAlgo.integrate(maFctKernel_x, ot.Interval(yMin_i, yMax_i))[0]
+            int_x = (1-pi_weight) * int_x
 
         PEG = int_b + int_x
         return PEG
@@ -1124,7 +1126,7 @@ class ECLM(object):
         for i in range(Nskip):
             noMatter = MultiNomDist.getRealization()
 
-        pbar = tqdm.tqdm(total=int(ceil(N_remainder / blockSize)))
+        pbar = tqdm.tqdm(total=int(math.ceil(N_remainder / blockSize)))
         while Ndone < N_remainder:
             block += 1
             # Nombre de calculs qui restent à faire
