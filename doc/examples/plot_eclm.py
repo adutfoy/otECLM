@@ -1,7 +1,7 @@
 """
-========================================
-Example : Extended Common Load Modelling
-========================================
+==============================
+Extended Common Load Modelling
+==============================
 """
 # %%
 # Import the required modules
@@ -12,7 +12,6 @@ from openturns.viewer import View
 import oteclm
 
 # %%
-# ===========
 # Description
 # ===========
 #
@@ -43,7 +42,6 @@ vectImpactTotal[7] = 0
 myECLM = oteclm.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
 
 # %%
-# ==============================
 # Estimate the optimal parameter
 # ==============================
 #
@@ -80,7 +78,6 @@ view = View(gl)
 view.show()
 
 # %%
-# ==============================
 # Compute the ECLM probabilities
 # ==============================
 
@@ -101,7 +98,6 @@ PTS_list = myECLM.computePTSall()
 print('PTS_list = ', PTS_list)
 
 # %%
-# ================================================
 # Generate a sample of the parameters by Bootstrap
 # ================================================
 #
@@ -128,7 +124,6 @@ fileNameECLMProbabilities = 'sampleECLMProbabilitiesFromMankamo_{}.csv'.format(N
 myECLM.computeECLMProbabilitiesFromMankano(blockSize, fileNameSampleParam, fileNameECLMProbabilities)
 
 # %%
-# ======================================================
 # Graphically analyse the bootstrap sample of parameters
 # ======================================================
 #
@@ -155,7 +150,6 @@ view = View(gl)
 view.show()
 
 # %%
-# ==================================================================
 # Graphically analyse the bootstrap sample of the ECLM probabilities
 # ==================================================================
 #
@@ -227,7 +221,6 @@ view = View(gl)
 view.show()
 
 # %%
-# ============================================
 # Fit a distribution to the ECLM probabilities
 # ============================================
 #
@@ -287,7 +280,6 @@ view = View(gl)
 view.show()
 
 # %%
-# ====================================================================================
 # Analyse the minimal multiplicity which probability is greater than a given threshold
 # ====================================================================================
 # 
