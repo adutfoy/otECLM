@@ -296,6 +296,9 @@ class ECLM(object):
         formula += "out7 := Cx - Cco;"
         self.MankamoConstraints = ot.SymbolicFunction(["logPx", "Cco", "Cx"], ["out" + str(i) for i in range(8)], formula)
 
+        # Cache for the PEG
+        self.PEGAll = ot.Point(self.n + 1, -1.0)
+
     def verifyMankamoConstraints(self, X):
         r"""
         Verifies if the point :math:`(P_x, C_{co}, C_x)` verifies the constraints.
@@ -724,7 +727,6 @@ class ECLM(object):
         return [pi_weight, db, dx, dR, yxm]
 
 
-
     def computePEG(self, k):
         r"""
         Computes the :math:`\mathrm{PEG}(k|n)` probability.
@@ -746,6 +748,9 @@ class ECLM(object):
 
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
+
+        if self.PEGAll[k] != -1.0:
+            return self.PEGAll[k]
 
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
@@ -806,11 +811,13 @@ class ECLM(object):
             int_x = (1-pi_weight) * int_x
 
         PEG = int_b + int_x
+
+        self.PEGAll[k] = PEG
+
         return PEG
 
 
-
-    def  computePEGall(self):
+    def computePEGall(self):
         r"""
         Computes all the :math:`\mathrm{PEG}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
@@ -885,41 +892,60 @@ class ECLM(object):
         if k == 1:
             return self.computePSG1()
 
-        # range numerique de la Normal()
+        # Numerical range of the  Normal() distribution
         val_min = -7.65
-        val_max = 7.65
+        val_max =  7.65
 
-        def kernel_b(yPoint):
-            y = yPoint[0]
-            terme1 = pi_weight / db * ot.DistFunc.dNormal(y / db)
-            terme2 = math.pow(ot.DistFunc.pNormal((y - 1.0) / dR), k)
-            return [terme1 * terme2]
+        # Numerical integration interval
+        # base load
+        yMin_b = val_min * db
+        yMax_b = val_max * db
 
-        def kernel_x(yPoint):
-            y = yPoint[0]
-            terme1 = (1.0 - pi_weight) / dx * ot.DistFunc.dNormal((y - y_xm) / dx)
-            terme2 = math.pow(ot.DistFunc.pNormal((y - 1.0) / dR), k)
-            return [terme1 * terme2]
+        # extreme load
+        yMin_x = val_min * dx + y_xm
+        yMax_x = val_max * dx + y_xm
 
-        maFctKernel_b = ot.PythonFunction(1, 1, kernel_b)
-        maFctKernel_x = ot.PythonFunction(1, 1, kernel_x)
+        inputs   = ["y"]
+        outputs  = ["z"]
+        preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
+        preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
+        # Kernel b
+        # If 0<k<n, the Phi^k(1-Phi)^{n-k} term is zero if either Phi=0 or Phi=1
+        # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
+        # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
+        factor = ""
+        if k > 0:
+            factor += " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
+        formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
+        formula += "z := phib"
+        formula += factor + ";"
+        maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
 
-        # le range num de la loi Normale() est [val_min, val_max] = [-7.65, 7.65]
-        yMin_b = max(val_min * db, 1.0 + dR * val_min)
-        yMax_b = min(val_max * db, 1.0 + dR * val_max)
-        myInterval_b = ot.Interval(yMin_b, yMax_b)
-        yMin_x = max(val_min * dx + y_xm, 1.0 + dR * val_min)
-        yMax_x = min(val_max * dx + y_xm, 1.0 + dR * val_max)
-        myInterval_x = ot.Interval(yMin_x, yMax_x)
-        # integrate retourne un Point
-        # integrale partie b
+        # Kernel X
+        formula = preamble + "var phix := " + str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ");"
+        formula += "z := phix"
+        formula += factor + ";"
+        maFctKernelX = ot.SymbolicFunction(inputs, outputs, formula)
+
+        # base load part integration
         int_b = 0.0
         if yMin_b < yMax_b:
-            int_b =  self.integrationAlgo.integrate(maFctKernel_b, myInterval_b)[0]
-            # integrale partie x
+            for i in range(self.nIntervals):
+                yMin_i = yMin_b + i * (yMax_b - yMin_b) / self.nIntervals
+                yMax_i = yMin_b + (i + 1) * (yMax_b - yMin_b) / self.nIntervals
+                interval = ot.Interval(yMin_i, yMax_i)
+                int_b += self.integrationAlgo.integrate(maFctKernelB, interval)[0]
+            int_b = pi_weight * int_b
+
+        # extreme load part integration
         int_x = 0.0
         if yMin_x < yMax_x:
-            int_x =  self.integrationAlgo.integrate(maFctKernel_x, myInterval_x)[0]
+            for i in range(self.nIntervals):
+                yMin_i = yMin_x + i * (yMax_x - yMin_x) / self.nIntervals
+                yMax_i = yMin_x + (i + 1) * (yMax_x - yMin_x) / self.nIntervals
+                interval = ot.Interval(yMin_i, yMax_i)
+                int_x += self.integrationAlgo.integrate(maFctKernelX, ot.Interval(yMin_i, yMax_i))[0]
+            int_x = (1-pi_weight) * int_x
 
         PSG = int_b + int_x
         return PSG
@@ -974,7 +1000,7 @@ class ECLM(object):
         return PES
 
 
-    def  computePESall(self):
+    def computePESall(self):
         r"""
         Computes all the :math:`\mathrm{PES}(k|n)` probabilities for :math:`0 \leq k \leq n`.
 
@@ -1340,7 +1366,7 @@ class ECLM(object):
 "    t0 = time()\n"\
 "    pool = Pool()\n"\
 "    # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"    allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs), total=len(allInputs))))\n"\
+"    allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
 "    pool.close()\n"\
 "    t1 = time()\n"\
 "    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
@@ -1408,7 +1434,7 @@ class ECLM(object):
             graph.add(KS_dist.drawPDF())
             graph.setColors(['blue', 'red'])
             graph.setLegends(['Histo', 'KS'])
-$            graph.setLegendPosition('topright')
+            graph.setLegendPosition('topright')
             graph.setXTitle(descParam[k])
             graphMarg_list.append(graph)
 
@@ -2002,7 +2028,7 @@ $            graph.setLegendPosition('topright')
 "    t0 = time()\n"\
 "    with Pool() as pool:\n"\
 "        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs), total=len(allInputs))))\n"\
+"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
 "    t1 = time()\n"\
 "    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
 "    Ndone += size\n"\
@@ -2055,7 +2081,7 @@ $            graph.setLegendPosition('topright')
             Pt += i * totalImpactVector[i]
         Pt /= self.n * N
         self.Pt = Pt
-
+        self.PEGAll = ot.Point(self.n + 1, -1.0)
 
     def setIntegrationAlgo(self, integrationAlgo):
         r"""
@@ -2068,6 +2094,7 @@ $            graph.setLegendPosition('topright')
         """
 
         self.integrationAlgo = integrationAlgo
+        self.PEGAll = ot.Point(self.n + 1, -1.0)
 
 
     def setMankamoParameter(self, mankamoParameter):
@@ -2101,6 +2128,7 @@ $            graph.setLegendPosition('topright')
         """
 
         self.generalParameter = generalParameter
+        self.PEGAll = ot.Point(self.n + 1, -1.0)
 
 
     def getTotalImpactVector(self):
