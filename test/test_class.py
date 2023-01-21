@@ -6,8 +6,11 @@ import numpy.testing as npt
 import openturns.testing as ott
 
 def test_class():
-    values = ot.Multinomial(10000, ot.Poisson().getProbabilities()).getRealization()
+    N = 1000
+    p = ot.Poisson().getProbabilities()
+    values = ot.Multinomial(N, p).getRealization()
     value = ot.Indices([int(v) for v in values])
-    obj = otECLM.ECLM(value, ot.GaussLegendre(50))
-    res = obj.estimateMaxLikelihoodFromMankamo([0.5]*4, False, False)
+    obj = otECLM.ECLM(value, ot.GaussLegendre([50]))
+    x = [0.66134,0.489775,0.468524]
+    res = obj.estimateMaxLikelihoodFromMankamo(x, False, False)
     ott.assert_almost_equal(res[0:4], res[0:4])
