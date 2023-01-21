@@ -282,6 +282,19 @@ class ECLM(object):
         # global parameter
         self.eps = 1e-9
 
+        # Definition domain of the log-likelihood
+        formula  = "var terme1 := (Cx >= 1 ? 0.5 - 5e-16 : 0.5 - 0.5 * erf(sqrt(1.0 - Cx) / sqrt(2)));"
+        formula += "var terme2 := " + str(Pt - 0.5) + " / (1.0 - 1.0 / (2.0 * terme1));"
+        formula += "var Px := exp(logPx);"
+        formula += "out0 := " + str(Pt) + " - Px;";
+        formula += "out1 := terme1 - Px;"
+        formula += "out2 := terme2 - Px;"
+        formula += "out3 := Cx;"
+        formula += "out4 := 1.0 - Cx;"
+        formula += "out5 := Cco;"
+        formula += "out6 := 1.0 - Cco;"
+        formula += "out7 := Cx - Cco;"
+        self.MankamoConstraints = ot.SymbolicFunction(["logPx", "Cco", "Cx"], ["out" + str(i) for i in range(8)], formula)
 
     def verifyMankamoConstraints(self, X):
         r"""
@@ -302,24 +315,19 @@ class ECLM(object):
         The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. 
         """
 
-        Px, Cco, Cx = X
-        logPx = math.log(Px)
-
-        if Cx >1:
+        print("X=", ot.Point(X))
+        if X[0] <= 0.0:
             return False
 
-        terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-        terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
-        terme12_min = math.log(min(self.Pt, terme1, terme2))
-
-        # X respects the constraints if
-        # Constraint 1 :  logPx < terme_min
-        # Constraint 2 : 0 < Cx < 1
-        # Constraint 3 : 0 < Cco < 1
-            
-        test = logPx < terme12_min and Cco >0 and Cco < 1 and Cx >0
-        return test
-
+        # MankamoConstraints takes log(Px) as the first input component
+        x = ot.Point(X)
+        x[0] = math.log(X[0])
+        res = self.MankamoConstraints(x)
+        value = True
+        for r in res:
+            value = value and (r > 0.0)
+        print("  x=", x, "res=", res, "value=", value)
+        return value
 
     def computeValidMankamoStartingPoint(self, Cx, verbose=False):
         r"""
@@ -414,41 +422,15 @@ class ECLM(object):
         If the starting point is not valid, we computes a valid one witht the function *computeValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
         """
 
-        def func_constraint_Cco_Cx(X):
-            logPx, Cco, Cx = X
-            # X respects the constraints if
-            # Cco <= Cx
-            # return un Point
-            return [Cx - Cco]
-
-        maFct_cont_Cco_Cx = ot.PythonFunction(3, 1, func_constraint_Cco_Cx)
         maFctLogVrais_Mankamo = ot.PythonFunction(3, 1, self.logVrais_Mankamo)
 
-        def func_contraint_LogPx_Cx(X):
-            logPx, Cco, Cx = X
-            # pour dessiner la contrainte suivante 
-            # (logPx, Cx) --> min(terme1, terme2, terme3) - logPx
-
-            #print('-math.sqrt(1-Cx) = ', -math.sqrt(1-Cx))
-            terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
-            terme2 = (self.Pt-0.5)/(1-1/(2*terme1))
-            terme3 = self.Pt
-            #print('terme1, terme2, terme3 = ', terme1, terme2, terme3)
-            
-            # return un Point
-            return [min(math.log(terme1), math.log(terme2), math.log(terme3))-logPx]
-
-
-        # juste pour les besoins des graphes
-        ma_Fct_cont_LogPx_Cx = ot.PythonFunction(3, 1, func_contraint_LogPx_Cx)
-        
         ######################################
         # Maximisation de la vraisemblance
 
         optimPb = ot.OptimizationProblem(maFctLogVrais_Mankamo)
         optimPb.setMinimization(False)
         # contraintes sur (Cco, Cx): maFct_cont >= 0
-        optimPb.setInequalityConstraint(maFct_cont_Cco_Cx)
+        optimPb.setInequalityConstraint(self.MankamoConstraints)
         # bounds sur (logPx, Cco, Cx)
         boundsParam = ot.Interval([-35, self.eps, self.eps], [math.log(self.Pt), 1.0-self.eps, 1.0-self.eps])
         print('boundsParam = ', boundsParam)
@@ -511,6 +493,26 @@ class ECLM(object):
         g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx = [None]*6
 
         if visuLikelihood:
+            
+            def func_contraint_LogPx_Cx(X):
+                logPx, Cco, Cx = X
+                # pour dessiner la contrainte suivante 
+                # (logPx, Cx) --> min(terme1, terme2, terme3) - logPx
+
+                #print('-math.sqrt(1-Cx) = ', -math.sqrt(1-Cx))
+                terme1 = ot.DistFunc.pNormal(-math.sqrt(1 - Cx))
+                terme2 = (self.Pt - 0.5) / (1 - 1 / (2 * terme1))
+                terme3 = self.Pt
+                #print('terme1, terme2, terme3 = ', terme1, terme2, terme3)
+
+                # return un Point
+                return [min(math.log(terme1), math.log(terme2), math.log(terme3))-logPx]
+
+
+            # juste pour les besoins des graphes
+            ma_Fct_cont_LogPx_Cx = ot.PythonFunction(3, 1, func_contraint_LogPx_Cx)
+            maFct_cont_Cco_Cx = ot.SymbolicFunction(["logPx", "Cco", "Cx"], ["Cx - Cco"])
+        
             print('Production of graphs')
             maFct_cont_Cco_Cx_fixedlogPx = ot.ParametricFunction(maFct_cont_Cco_Cx, [0], [logPx_optim])
             
