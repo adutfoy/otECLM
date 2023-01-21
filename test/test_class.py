@@ -1,4 +1,4 @@
-import otECLM
+import oteclm
 import numpy as np
 import openturns as ot
 import pytest

@@ -1,7 +1,7 @@
 API Reference
 =============
 
-.. currentmodule:: otECLM
+.. currentmodule:: oteclm
 
 .. autosummary::
     :toctree: _generated/

@@ -962,7 +962,7 @@ class ECLM(object):
 "\n"\
 "\n"\
 "import openturns as ot\n"\
-"from otECLM import ECLM\n"\
+"from oteclm import ECLM\n"\
 "\n"\
 "from time import time\n"\
 "import sys\n"\
@@ -1105,7 +1105,7 @@ class ECLM(object):
 "\n"\
 "\n"\
 "import openturns as ot\n"\
-"from otECLM import ECLM\n"\
+"from oteclm import ECLM\n"\
 "\n"\
 "from time import time\n"\
 "import sys\n"\
@@ -1738,7 +1738,7 @@ class ECLM(object):
 "\n"\
 "\n"\
 "import openturns as ot\n"\
-"from otECLM import ECLM\n"\
+"from oteclm import ECLM\n"\
 "\n"\
 "from time import time\n"\
 "import sys\n"\

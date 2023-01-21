@@ -1,8 +1,8 @@
 """
-Setup script for otECLM
+Setup script for oteclm
 ==========================
 
-This script allows to install otECLM within the python environment.
+This script allows to install oteclm within the python environment.
 
 Usage
 -----
@@ -18,7 +18,7 @@ from distutils.core import setup
 from setuptools import find_packages
 
 # Get the version from __init__.py
-path = os.path.join(os.path.dirname(__file__), 'otECLM', '__init__.py')
+path = os.path.join(os.path.dirname(__file__), 'oteclm', '__init__.py')
 with open(path) as f:
     version_file = f.read()
 
@@ -36,7 +36,7 @@ with open("README.rst", "r") as fh:
 setup(
 
     # library name
-    name='otECLM',
+    name='oteclm',
 
     # code version
     version=version,
@@ -45,7 +45,7 @@ setup(
     packages=find_packages(),
 
     # Descriptions
-    description="otECLM",
+    description="oteclm",
     long_description=long_description,
 
     # List of dependancies

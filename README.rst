@@ -47,4 +47,4 @@ This builds the documentation in the `build` folder. Another option is to launch
 Documentation
 =============
 
-A documentation, including examples is available `here <https://adutfoy.github.io/sphinx/otECLM/main/>`_.
+A documentation, including examples is available `here <https://adutfoy.github.io/sphinx/oteclm/main/>`_.

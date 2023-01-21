@@ -1,4 +1,4 @@
-otECLM documentation
+oteclm documentation
 ====================
 
 User documentation
