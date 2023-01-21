@@ -1920,6 +1920,10 @@ class ECLM(object):
         ----------
         mankamoParameter : list of float
             The Mankamo parameter :eq:`MankamoParam`.
+
+        Notes
+        -----
+        It automaticcally updates the general parameter.
         """
 
         self.MankamoParameter = mankamoParameter
