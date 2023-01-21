@@ -1,6 +1,7 @@
 """
+========================================
 Example : Extended Common Load Modelling
-----------------------------------------
+========================================
 """
 # %%
 # | Import the required modules
@@ -12,11 +13,13 @@ import oteclm
 
 # %%
 # Description
-# -----------
+# ===========
 #
 # We consider a common cause failure (CCF) groupe with *n=7* identical and independent components. The total impact vector of this CCF group is estimated after N=1002100 demands or tests on the group.
+#
 # .. math::
-#    V_t^{n,N} = [1000000, 2000, 200, 30, 20, 5, 0, 0]
+#
+#     V_t^{n,N} = [1000000, 2000, 200, 30, 20, 5, 0, 0]
 #
 #
 
@@ -40,7 +43,7 @@ myECLM = oteclm.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
 
 # %%
 # Estimate the optimal parameter
-# ------------------------------
+# ==============================
 #
 # We use the Mankamo assumption. We use the maximum likelihood estimators of the *Mankamo parameter*. We want to get all the graphs of the likelihood function at the optimal Mankamo parameter.
 # 
@@ -75,7 +78,7 @@ gl
 
 # %%
 # Compute the ECLM probabilities
-# ------------------------------
+# ==============================
 
 # %%
 PEG_list = myECLM.computePEGall()
@@ -95,7 +98,7 @@ print('PTS_list = ', PTS_list)
 
 # %%
 # Generate a sample of the parameters by Bootstrap
-# ------------------------------------------------
+# ================================================
 #
 # We use the bootstrap sampling to get a sample of total impact vectors. Each total impact vector value is associated to an optimal Mankamo parameter and an optimal general parameter.
 # We fix the size of the bootstrap sample.
@@ -121,7 +124,7 @@ myECLM.computeECLMProbabilitiesFromMankano(blockSize, fileNameSampleParam, fileN
 
 # %%
 # Graphically analyse the bootstrap sample of parameters
-# ------------------------------------------------------
+# ======================================================
 #
 # We create the Pairs graphs of the Mankamo and general parameters.
 
@@ -144,7 +147,7 @@ gl
 
 # %%
 # Graphically analyse the bootstrap sample of the ECLM probabilities
-# ------------------------------------------------------------------
+# ==================================================================
 #
 # We create the Pairs graphs of all the ECLM probabilities. We limit the graphical study to the multiplicities lesser than :math:`k_{max}`.
 
@@ -206,7 +209,7 @@ gl
 
 # %%
 # Fit a distribution to the ECLM probabilities
-# --------------------------------------------
+# ============================================
 #
 # We fit a distribution among a given list to each ECLM probability. We test it with the Lilliefors test. 
 # We also compute the confidence interval of the specified level.
@@ -261,10 +264,11 @@ gl
 
 # %%
 # Analyse the minimal multiplicity which probability is greater than a given threshold
-# ------------------------------------------------------------------------------------
+# ====================================================================================
 # 
 # We fix *p* and we get the minimal multiplicity :math:`k_{max}` such that :
 # .. math::
+#
 #    k_{max} = \arg\max \{k| \mbox{PTS}(k|n) \geq p \}
 #
 
