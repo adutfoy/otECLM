@@ -231,12 +231,12 @@ class ECLM(object):
 
     def verify_MankamoConstraints(self, X):
         """
-        Verifies if the point :math:`(Px, C_{co}, C_x)` verifies the constraints.
+        Verifies if the point :math:`(P_x, C_{co}, C_x)` verifies the constraints.
 
         Parameters
         ----------
         inPoint : :class:`~openturns.Point`
-            The point :math:`(Px, C_{co}, C_x)`
+            The point :math:`(P_x, C_{co}, C_x)`
 
         Returns
         -------
@@ -269,24 +269,24 @@ class ECLM(object):
 
     def compute_ValidMankamoStartingPoint(self, Cx, verbose=False):
         """
-        Gives a point :math:`(Px, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
+        Gives a point :math:`(P_x, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
 
         Parameters
         ----------
-        Cx : float, :math:`0 < Cx < 1`
+        Cx : float, :math:`0 < C_x < 1`
             The parameter :math:`C_x`.
 
         Returns
         -------
         validPoint : :class:`~openturns.Point`
-            A valid point  :math:`(Px, C_{co}, C_x)` verifying the constraints.
+            A valid point  :math:`(P_x, C_{co}, C_x)` verifying the constraints.
         verbose : bool
-            if Ture, gives the possible range of  :math:`(Px, C_{co})`.
+            if Ture, gives the possible range of  :math:`(P_x, C_{co})`.
 
 
         Notes
         -----
-        The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. The parameter :math:`P_t` is computed from the total impact vector as :eq:`eqPt`. For a given :math:`C_x`, we give the range of possible values for :math:`P_x` and :math:`C_{co}` and we propose a valid point :math:`(Px, C_{co}, C_x)`.
+        The constraints are defined in :eq:`MankamoConstraints`  under the Mankamo assumption :eq:`mankamoHyp`. The parameter :math:`P_t` is computed from the total impact vector as :eq:`eqPt`. For a given :math:`C_x`, we give the range of possible values for :math:`P_x` and :math:`C_{co}` and we propose a valid point :math:`(P_x, C_{co}, C_x)`.
         """
         
         terme1 = ot.DistFunc.pNormal(-math.sqrt(1-Cx))
@@ -311,7 +311,7 @@ class ECLM(object):
         Parameters
         ----------
         startingPoint : :class:`~openturns.Point`
-            Starting point :math:`(Px, C_{co}, C_x)` for the optimization problem.
+            Starting point :math:`(P_x, C_{co}, C_x)` for the optimization problem.
         visuLikelihood : Bool
             Produces the graph of the log-likelihood function at the optimal point.
         verbose : Bool
