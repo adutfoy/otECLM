@@ -12,6 +12,7 @@ from openturns.viewer import View
 import oteclm
 
 # %%
+# ===========
 # Description
 # ===========
 #
@@ -42,6 +43,7 @@ vectImpactTotal[7] = 0
 myECLM = oteclm.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
 
 # %%
+# ==============================
 # Estimate the optimal parameter
 # ==============================
 #
@@ -77,6 +79,7 @@ for i in range(6):
 gl
 
 # %%
+# ==============================
 # Compute the ECLM probabilities
 # ==============================
 
@@ -97,6 +100,7 @@ PTS_list = myECLM.computePTSall()
 print('PTS_list = ', PTS_list)
 
 # %%
+# ================================================
 # Generate a sample of the parameters by Bootstrap
 # ================================================
 #
@@ -123,6 +127,7 @@ fileNameECLMProbabilities = 'sampleECLMProbabilitiesFromMankamo_{}.csv'.format(N
 myECLM.computeECLMProbabilitiesFromMankano(blockSize, fileNameSampleParam, fileNameECLMProbabilities)
 
 # %%
+# ======================================================
 # Graphically analyse the bootstrap sample of parameters
 # ======================================================
 #
@@ -146,6 +151,7 @@ for k in range(len(graphMarg_list)):
 gl
 
 # %%
+# ==================================================================
 # Graphically analyse the bootstrap sample of the ECLM probabilities
 # ==================================================================
 #
@@ -208,6 +214,7 @@ for k in range(len(graphMargPTS_list)):
 gl    
 
 # %%
+# ============================================
 # Fit a distribution to the ECLM probabilities
 # ============================================
 #
@@ -263,6 +270,7 @@ for k in range(len(graphMargPTS_list)):
 gl
 
 # %%
+# ====================================================================================
 # Analyse the minimal multiplicity which probability is greater than a given threshold
 # ====================================================================================
 # 
