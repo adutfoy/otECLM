@@ -11,7 +11,7 @@ Get source:
 
 .. code-block:: shell
 
-    $ git clone https://www.github.com/adutfoy/otECLMpython.git
+    $ git clone https://www.github.com/adutfoy/otECLM.git
 
 
 The install procedure is performed as follows:
