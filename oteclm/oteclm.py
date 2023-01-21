@@ -1076,7 +1076,7 @@ class ECLM(object):
         return resFinal
 
 
-    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blocksize=256):
+    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blockSize=256):
         r"""
         Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
 
@@ -1097,7 +1097,7 @@ class ECLM(object):
 
         The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
-        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
+        The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
         myStudy = ot.Study('myECLM.xml')
         myStudy.add('integrationAlgo', self.integrationAlgo)
@@ -1241,7 +1241,7 @@ class ECLM(object):
 
         The function generates the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
-        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
+        The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
 
         myStudy = ot.Study('myECLM.xml')
@@ -1916,7 +1916,7 @@ class ECLM(object):
         -----
         The function generates the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
-        The computation is saved in the csv file named *fileNameRes* every blocksize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
+        The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
         The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
         """
