@@ -229,7 +229,7 @@ class ECLM(object):
     
 
 
-    def verify_MankamoConstraints(self, X):
+    def verifyMankamoConstraints(self, X):
         """
         Verifies if the point :math:`(P_x, C_{co}, C_x)` verifies the constraints.
 
@@ -267,7 +267,7 @@ class ECLM(object):
         return test
     
 
-    def compute_ValidMankamoStartingPoint(self, Cx, verbose=False):
+    def computeValidMankamoStartingPoint(self, Cx, verbose=False):
         """
         Gives a point :math:`(P_x, C_{co})` given :math:`C_x` and :math:`P_t` verifying the constraints.
 
@@ -328,7 +328,7 @@ class ECLM(object):
 
         Notes
         -----
-        If the starting point is not valid, we computes a valid one witht the function *compute_ValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
+        If the starting point is not valid, we computes a valid one witht the function *computeValidMankamoStartingPoint* at the point :math:`c_x = 0.7`. 
         """
 
 
@@ -393,7 +393,7 @@ class ECLM(object):
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
         if not self.verify_MankamoConstraints(startingPoint):        
-            startingPoint = self.compute_ValidMankamoStartingPoint(0.7, verbose)
+            startingPoint = self.computeValidMankamoStartingPoint(0.7, verbose)
             if verbose:
                 print('Changed starting point : ', startingPoint)
         # startPoint = [logPx, Cco, Cx]
@@ -1218,7 +1218,7 @@ class ECLM(object):
         os.remove("myECLM.xml")
 
 
-    def analyse_graphsECLMParam(self, fileNameSample):
+    def analyseGraphsECLMParam(self, fileNameSample):
         """
         Produces graphs to analyse a sample of (Mankamo and general) parameters.
 
@@ -1279,7 +1279,7 @@ class ECLM(object):
         return graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam
 
 
-    def analyse_graphsECLMProbabilities(self, fileNameSample, kMax):
+    def analyseGraphsECLMProbabilities(self, fileNameSample, kMax):
         """
         Produces graphs to analyse a sample of all the ECLM probabilities.
 
@@ -1454,7 +1454,7 @@ class ECLM(object):
 
 
 
-    def analyse_distECLMProbabilities(self, fileNameSample, kMax, confidenceLevel, factoryColl):
+    def analyseDistECLMProbabilities(self, fileNameSample, kMax, confidenceLevel, factoryColl):
         """
         Fits  distribution on ECL probabilities sample.
 
@@ -1654,7 +1654,7 @@ class ECLM(object):
 
 
 
-    def computeKMax_PTS(self, p):
+    def computeKMaxPTS(self, p):
         """
         Computes the minimal  multipicity of the common cause failure with a probability greater than a given threshold.
 
@@ -1776,7 +1776,7 @@ class ECLM(object):
 "    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
 "    generalParameter = inP[4:9]\n"\
 "    myECLM.setGeneralParameter(generalParameter)\n"\
-"    kMax = myECLM.computeKMax_PTS(p)\n"\
+"    kMax = myECLM.computeKMaxPTS(p)\n"\
 "    return [kMax]\n"\
 "\n"\
 "\n"\
