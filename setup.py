@@ -50,9 +50,10 @@ setup(
 
     # List of dependancies
     setup_requires=['pytest-runner'],
-    install_requires=['numpy>=1.13',
+    install_requires=['numpy>=1.19',
                       'openturns'],
-    tests_require=['pytest'],
+    tests_require=['pytest',
+                   'tqdm'],
 
     # Enable to take into account MANIFEST.in
     # include_package_data=True,
