@@ -392,7 +392,7 @@ class ECLM(object):
         return [S]
     
 
-    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood):
+    def estimateMaxLikelihoodFromMankamo(self, startingPoint, visuLikelihood=False):
         r"""
         Estimates the maximum likelihood (general and Mankamo) parameters under the Mankamo assumption.
 
@@ -402,6 +402,7 @@ class ECLM(object):
             Starting point :math:`(P_x, C_{co}, C_x)` for the optimization problem.
         visuLikelihood : Bool
             Produces the graph of the log-likelihood function at the optimal point.
+            Default value is False.
 
         Returns
         -------
