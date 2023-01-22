@@ -110,18 +110,17 @@ print('PTS_list = ', PTS_list)
 
 # %%
 Nbootstrap = 100
-blockSize = 256
 
 # %%
 startingPoint = mankamoParam[1:4]
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
-myECLM.estimateBootstrapParamSampleFromMankamo(Nbootstrap, startingPoint, blockSize, fileNameSampleParam)
+myECLM.estimateBootstrapParamSampleFromMankamo(Nbootstrap, startingPoint, fileNameSampleParam)
 
 # Create the sample of all the ECLM probabilities associated to the sample of the parameters.
 
 # %%
 fileNameECLMProbabilities = 'sampleECLMProbabilitiesFromMankamo_{}.csv'.format(Nbootstrap)
-myECLM.computeECLMProbabilitiesFromMankano(blockSize, fileNameSampleParam, fileNameECLMProbabilities)
+myECLM.computeECLMProbabilitiesFromMankano(fileNameSampleParam, fileNameECLMProbabilities)
 
 # %%
 # Graphically analyse the bootstrap sample of parameters
@@ -303,7 +302,7 @@ print('kMax = ', kMax)
 # %%
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
 fileNameSampleKmax = 'sampleKmaxFromMankamo_{}_{}.csv'.format(Nbootstrap, nameSeuil)
-gKmax = myECLM.computeAnalyseKMaxSample(p, blockSize, fileNameSampleParam, fileNameSampleKmax)
+gKmax = myECLM.computeAnalyseKMaxSample(p, fileNameSampleParam, fileNameSampleKmax)
 
 # %%
 view = View(gKmax)
