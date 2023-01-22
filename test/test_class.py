@@ -18,7 +18,7 @@ def test_class():
     vectImpactTotal[7] = 11
     vectImpactTotal[9] = 11
     intAlgo = ot.GaussKronrod()
-    myECLM = ECLM(vectImpactTotal, intAlgo)
+    myECLM = oteclm.ECLM(vectImpactTotal, intAlgo)
     x = [5.7e-3, 0.51, 0.85]
     mankamoParam, generalParam, finalLogLikValue, graphesCol = obj.estimateMaxLikelihoodFromMankamo(x)
     ott.assert_almost_equal(mankamoParam, [2.115474126591159e-05, 5.662655017957865e-07, 0.5460764865197583, 0.8490578893757419])
