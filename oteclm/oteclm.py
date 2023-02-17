@@ -299,6 +299,9 @@ class ECLM(object):
         # Cache for the PEG
         self.PEGAll = ot.Point(self.n + 1, -1.0)
 
+        # Cache for the PSG
+        self.PSGAll = ot.Point(self.n + 1, -1.0)
+
     def verifyMankamoConstraints(self, X):
         r"""
         Verifies if the point :math:`(P_x, C_{co}, C_x)` verifies the constraints.
@@ -893,13 +896,20 @@ class ECLM(object):
         if self.generalParameter is None:
             raise Exception('The general parameter has not been estimated!')
 
+        if self.PSGAll[k] != -1.0:
+            return self.PSGAll[k]
+
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
-        # specal computation on that case
+        # special computation on that case
+        if k == 0:
+            return 1.0
+
+        # special computation on that case
         if k == 1:
             return self.computePSG1()
 
-        # Numerical range of the  Normal() distribution
+        # Numerical range of the Normal() distribution
         val_min = -7.65
         val_max =  7.65
 
@@ -955,6 +965,9 @@ class ECLM(object):
             int_x = (1-pi_weight) * int_x
 
         PSG = int_b + int_x
+
+        self.PSGAll[k] = PSG
+
         return PSG
 
 
@@ -1038,12 +1051,12 @@ class ECLM(object):
 
         Returns
         -------
-        pts_kn : float,  :math:`0 \leq  \mathrm{PTS}(k|n) \leq 1`
-            The :math:`\mathrm{PTS}(k|n)`  probability.
+        pts_kn : float, :math:`0 \leq \mathrm{PTS}(k|n) \leq 1`
+            The :math:`\mathrm{PTS}(k|n)` probability.
 
         Notes
         -----
-        The  :math:`\mathrm{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\mathrm{PES}(i|n)` probability is computed using :eq:`PES_red`.
+        The :math:`\mathrm{PTS}(k|n)` probability is computed using :eq:`PTS_red`  where the :math:`\mathrm{PES}(i|n)` probability is computed using :eq:`PES_red`.
         """
 
         if k == 0:
@@ -1112,6 +1125,7 @@ class ECLM(object):
         myStudy = ot.Study('myECLM.xml')
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
+        myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
         myStudy.add('startingPoint', ot.Point(startingPoint))
         myStudy.save()
 
@@ -1154,17 +1168,19 @@ class ECLM(object):
 "print('Nbootstrap, blockSize, fileNameRes  = ', Nbootstrap, blockSize, fileNameRes )\n"\
 "\n"\
 "\n"\
-"# Import de  vectImpactTotal et startingPoint\n"\
+"# Import de vectImpactTotal, startingPoint et nIntervals\n"\
 "myStudy = ot.Study('myECLM.xml')\n"\
 "myStudy.load()\n"\
 "integrationAlgo = ot.IntegrationAlgorithm()\n"\
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
 "totalImpactVector = ot.Indices()\n"\
 "myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"nIntervalsAsIndices = ot.Indices()\n"\
+"myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
 "startingPoint = ot.Point()\n"\
 "myStudy.fillObject('startingPoint', startingPoint)\n"\
 "\n"\
-"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
 "\n"\
 "# Sollicitations number\n"\
 "N = sum(totalImpactVector)\n"\
@@ -1173,52 +1189,54 @@ class ECLM(object):
 "MultiNomDist = ot.Multinomial(N, [v/N for v in totalImpactVector])\n"\
 "\n"\
 "def job(inP):\n"\
-"    point, startingPoint = inP\n"\
+"    point, startingPoint, index = inP\n"\
 "    vectImpactTotal = ot.Indices([int(round(x)) for x in point])\n"\
 "    myECLM.setTotalImpactVector(vectImpactTotal)\n"\
 "    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
 "    resMankamo = res[0]\n"\
 "    resGeneral = res[1]\n"\
 "    resFinal = resMankamo + resGeneral\n"\
-"    return resFinal\n"\
+"    return resFinal, index\n"\
 "\n"\
 "Ndone = 0\n"\
 "block = 0\n"\
 "t00 = time()\n"\
 "\n"\
 "\n"\
+"# the dimension of res is 9\n"\
+"allResults = ot.Sample(Nbootstrap, 9)\n"\
 "#  Si des calculs ont déjà été faits, on les importe:\n"\
 "try:\n"\
 "    print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
-"    allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    allResultsDone = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+"    allResults[0:Ndone] = allResultsDone\n"\
+"    Ndone = len(allResultsDone)\n"\
 "    print('import ok')\n"\
 "except:\n"\
 "    print('No previous results')\n"\
-"    # the size of res is 9\n"\
-"    allResults = ot.Sample(0, 9)\n"\
 "\n"\
 "allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
 "\n"\
 "# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
-"Nskip = allResults.getSize()\n"\
-"N_remainder = Nbootstrap - Nskip\n"\
-"print('Skip = ', Nskip)\n"\
-"for i in range(Nskip):\n"\
+"print('Skip = ', Ndone)\n"\
+"for i in range(Ndone):\n"\
 "    noMatter = MultiNomDist.getRealization()\n"\
-"while Ndone < N_remainder:\n"\
+"while Ndone < Nbootstrap:\n"\
 "    block += 1\n"\
 "     # Nombre de calculs qui restent à faire\n"\
-"    size = min(blockSize, N_remainder - Ndone)\n"\
+"    size = min(blockSize, Nbootstrap - Ndone)\n"\
 "    print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nbootstrap)\n"\
 "    t0 = time()\n"\
-"    allInputs = [[MultiNomDist.getRealization(), startingPoint] for i in range(size)]\n"\
+"    allInputs = [[MultiNomDist.getRealization(), startingPoint, Ndone + i] for i in range(size)]\n"\
 "    t1 = time()\n"\
 "    print('t=%g' % (t1 - t0), 's')\n"\
 "\n"\
 "    t0 = time()\n"\
 "    with Pool() as pool:\n"\
 "        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
+"        res = list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs)))\n"\
+"        for r in res:\n"\
+"            allResults[r[1]] = r[0]\n"\
 "    t1 = time()\n"\
 "    print('t=%g' % (t1 - t0), 's', 't (start)=%g' %(t1 - t00), 's')\n"\
 "    Ndone += size\n"\
@@ -1257,6 +1275,7 @@ class ECLM(object):
         myStudy = ot.Study('myECLM.xml')
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
+        myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
         myStudy.save()
 
         import os
@@ -1309,8 +1328,10 @@ class ECLM(object):
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
 "totalImpactVector = ot.Indices()\n"\
 "myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"nIntervalsAsIndices = ot.Indices()\n"\
+"myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
 "\n"\
-"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
 "\n"\
 "\n"\
 "def job(inP):\n"\
@@ -1376,7 +1397,7 @@ class ECLM(object):
 "    t0 = time()\n"\
 "    pool = Pool()\n"\
 "    # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"    allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
+"    allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs))))\n"\
 "    pool.close()\n"\
 "    t1 = time()\n"\
 "    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
@@ -1734,7 +1755,11 @@ class ECLM(object):
             print('Ordre k=', k)
             try:
                 print('PEG...')
+                state = ot.RandomGenerator.GetState()
+                ot.RandomGenerator.SetSeed(0)
                 best_model_PEG_k, best_result_PEG_k = ot.FittingTest.BestModelLilliefors(samplePEG_k, factoryColl)
+                ot.RandomGenerator.SetState(state)
+
                 print('Best model PEG(', k, '|n) : ', best_model_PEG_k, 'p-value = ', best_result_PEG_k.getPValue())
                 best_model_PEG_k = best_model_PEG_k.getName()
             except:
@@ -1934,6 +1959,7 @@ class ECLM(object):
         myStudy = ot.Study('myECLM.xml')
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
+        myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
         myStudy.save()
 
         import os
@@ -1984,8 +2010,10 @@ class ECLM(object):
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
 "totalImpactVector = ot.Indices()\n"\
 "myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+"nIntervalsAsIndices = ot.Indices()\n"\
+"myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
 "\n"\
-"myECLM = ECLM(totalImpactVector, integrationAlgo)\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices)\n"\
 "\n"\
 "def job(inP):\n"\
 "    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
@@ -2038,7 +2066,7 @@ class ECLM(object):
 "    t0 = time()\n"\
 "    with Pool() as pool:\n"\
 "        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=16), total=len(allInputs))))\n"\
+"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs))))\n"\
 "    t1 = time()\n"\
 "    print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
 "    Ndone += size\n"\
@@ -2105,6 +2133,7 @@ class ECLM(object):
 
         self.integrationAlgo = integrationAlgo
         self.PEGAll = ot.Point(self.n + 1, -1.0)
+        self.PSGAll = ot.Point(self.n + 1, -1.0)
 
 
     def setMankamoParameter(self, mankamoParameter):
@@ -2139,6 +2168,7 @@ class ECLM(object):
 
         self.generalParameter = generalParameter
         self.PEGAll = ot.Point(self.n + 1, -1.0)
+        self.PSGAll = ot.Point(self.n + 1, -1.0)
 
 
     def getTotalImpactVector(self):
@@ -2213,7 +2243,7 @@ class ECLM(object):
         Returns
         -------
         Pt : float, :math:`0 < P_t < 1`
-            The estimator of PSG(:math:`|n`).
+            The estimator of PT(:math:`|n`).
         """
 
         return self.Pt
