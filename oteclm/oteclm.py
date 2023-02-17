@@ -259,7 +259,7 @@ class ECLM(object):
     """
 
     
-    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=8, verbose=False):
+    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussLegendre([40]), nIntervals=8, verbose=False):
         # set attribute
         self.totalImpactVector = totalImpactVector
         self.integrationAlgo = integrationAlgo
