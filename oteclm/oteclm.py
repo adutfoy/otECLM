@@ -259,7 +259,7 @@ class ECLM(object):
     """
 
     
-    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=5, verbose=False):
+    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussKronrod(), nIntervals=8, verbose=False):
         # set attribute
         self.totalImpactVector = totalImpactVector
         self.integrationAlgo = integrationAlgo
@@ -526,18 +526,21 @@ class ECLM(object):
             # Care! logPx_optim <0!
             logPx_inf = (1+coef)*logPx_optim
             logPx_sup = (1-coef)*logPx_optim
-            Cco_inf = max((1-coef)*Cco_optim, 0.01)
+
+            #Cco_inf = max((1-coef)*Cco_optim, 0.01)
+            Cco_inf = (1-coef)*Cco_optim
             Cco_sup = min((1+coef)*Cco_optim, 0.99)
-            Cx_inf = max((1-coef)*Cx_optim, 0.01)
+            
+            Cx_inf = max((1-coef)*Cx_optim, 1.05*Cco_optim)
             Cx_sup = min((1+coef)*Cx_optim, 0.99)
-            NbPt = 128
-            NbPt2 = 64
+
+            NbPt = 64
 
             ####################
             # graphe (logPx) pour Cco = Cco_optim et Cx = Cx_optim
             # graphe de la loglikelihood
             print('graph (Cco, Cx) = (Cco_optim, Cx_optim)')
-            g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, logPx_sup, NbPt)
+            g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, logPx_sup, 2*NbPt)
             
             # + contrainte sur logPx
             limSup_logPx = ma_Fct_cont_LogPx_Cx_fixedCcoCx([logPx_optim])[0] + logPx_optim
@@ -563,7 +566,7 @@ class ECLM(object):
             # graphe (Cco) pour log Px = log Px_optim et Cx = Cx_optim
             # graphe de la loglikelihood
             print('graph (logPx, Cx) = (logPx_optim, Cx_optim)')
-            g_fixedlogPxCx = maFctLogVrais_Mankamo_fixedlogPxCx.draw(Cco_inf, Cco_sup, NbPt)
+            g_fixedlogPxCx = maFctLogVrais_Mankamo_fixedlogPxCx.draw(Cco_inf, Cco_sup, 2*NbPt)
             # + contrainte sur Cco< Cx
             minValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedlogPxCx.getDrawable(0).getData().getMax()[1]
@@ -588,7 +591,7 @@ class ECLM(object):
             # graphe (Cx) pour logPx = logPx_optim et Cco = Cco_optim
             # graphe de la loglikelihood
             print('graph (logPx, Cco) = (logPx_optim, Cco_optim)')
-            g_fixedlogPxCco = maFctLogVrais_Mankamo_fixedlogPxCco.draw(Cx_inf, Cx_sup, NbPt)
+            g_fixedlogPxCco = maFctLogVrais_Mankamo_fixedlogPxCco.draw(Cx_inf, Cx_sup, 2*NbPt)
             # contrainte Cx > Cco
             minValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedlogPxCco.getDrawable(0).getData().getMax()[1]
@@ -614,7 +617,7 @@ class ECLM(object):
             # graphe (Px, Cco) pour Cx = Cx_optim
             print('graph Cx = Cx_optim')
             # graphe de la loglikelihood
-            g_fixedCx = maFctLogVrais_Mankamo_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2)            
+            g_fixedCx = maFctLogVrais_Mankamo_fixedCx.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt]*2)            
             # contrainte  Cx > Cco
             lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cx_optim, Cx_optim],  r'$C_{co} \leq C_x^{optim}$')
             lineConstraint.setLineStyle('dashed')
@@ -622,7 +625,7 @@ class ECLM(object):
             lineConstraint.setColor('black')
             g_fixedCx.add(lineConstraint)
             # contrainte sur logPx et Cx
-            dr =  ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt2]*2).getDrawable(0)
+            dr =  ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt]*2).getDrawable(0)
             dr.setLevels([0.0])
             #dr.setLegend(r'$\log P_x \leq f(C_x)$')
             dr.setLegend('constraint')
@@ -647,7 +650,7 @@ class ECLM(object):
             # graphe (logPx, Cx) pour Cco = Cco_optim
             print('graph Cco = Cco_optim')
             # graphe de la loglikelihood
-            g_fixedCco = maFctLogVrais_Mankamo_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2)
+            g_fixedCco = maFctLogVrais_Mankamo_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt]*2)
             # contrainte  Cx > Cco
             #lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cco_optim, Cco_optim], r'$C_{co}^{optim} \leq C_x$')
             lineConstraint = ot.Curve([logPx_inf, logPx_sup], [Cco_optim, Cco_optim], 'constraint')
@@ -656,7 +659,7 @@ class ECLM(object):
             lineConstraint.setLineWidth(2)
             g_fixedCco.add(lineConstraint)
             # contrainte sur logPx et Cx
-            dr = ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt2]*2).getDrawable(0)
+            dr = ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cx_inf], [logPx_sup, Cx_sup], [NbPt]*2).getDrawable(0)
             dr.setLevels([0.0])
             #dr.setLegend(r'$\log P_x \leq f(C_x)$')
             dr.setLegend('constraint')
@@ -677,7 +680,7 @@ class ECLM(object):
             # graphe (Cco, Cx) pour logPx = logPx_optim
             print('graph logPx = logPx_optim')
             # niveau de la loglikelihood
-            g_fixedlogPx = maFctLogVrais_Mankamo_fixedlogPx.draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt2]*2)
+            g_fixedlogPx = maFctLogVrais_Mankamo_fixedlogPx.draw([Cco_inf, Cx_inf], [Cco_sup, Cx_sup], [NbPt]*2)
             # contrainte  Cx > Cco
             lineConstraint = ot.Curve([Cco_inf, Cco_sup], [Cx_inf, Cx_sup], r'$C_{co} \leq C_x$')
             lineConstraint.setLineStyle('dashed')
@@ -753,6 +756,9 @@ class ECLM(object):
         if self.PEGAll[k] != -1.0:
             return self.PEGAll[k]
 
+        if k == 0:
+            return 1.0
+        
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         # Numerical range of the  Normal() distribution
@@ -1040,6 +1046,9 @@ class ECLM(object):
         The  :math:`\mathrm{PTS}(k|n)` probability is computed using  :eq:`PTS_red`  where  the :math:`\mathrm{PES}(i|n)` probability is computed using :eq:`PES_red`.
         """
 
+        if k == 0:
+            return 1.0
+        
         PTS = 0.0
         for i in range(k,self.n + 1):
             PTS += self.computePES(i)
