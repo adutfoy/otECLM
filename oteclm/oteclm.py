@@ -758,9 +758,6 @@ class ECLM(object):
 
         if self.PEGAll[k] != -1.0:
             return self.PEGAll[k]
-
-        if k == 0:
-            return 1.0
         
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
