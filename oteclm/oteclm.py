@@ -896,15 +896,19 @@ class ECLM(object):
         if self.PSGAll[k] != -1.0:
             return self.PSGAll[k]
 
-        pi_weight, db, dx, dR, y_xm = self.generalParameter
-
         # special computation on that case
         if k == 0:
-            return 1.0
+            PSG = 1.0
+            self.PSGAll[0] = PSG
+            return PSG
 
         # special computation on that case
         if k == 1:
-            return self.computePSG1()
+            PSG = self.computePSG1()
+            self.PSGAll[0] = PSG
+            return PSG
+
+        pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         # Numerical range of the Normal() distribution
         val_min = -7.65
