@@ -443,10 +443,10 @@ class ECLM(object):
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
         myAlgo.setMaximumEvaluationNumber(10000)
-        myAlgo.setMaximumConstraintError(1e-5)
-        myAlgo.setMaximumAbsoluteError(1e-5)
-        myAlgo.setMaximumRelativeError(1e-5)
-        myAlgo.setMaximumResidualError(1e-5)
+        myAlgo.setMaximumConstraintError(1e-4)
+        myAlgo.setMaximumAbsoluteError(1e-4)
+        myAlgo.setMaximumRelativeError(1e-3)
+        myAlgo.setMaximumResidualError(1e-4)
 
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
@@ -1195,7 +1195,7 @@ class ECLM(object):
 "    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
 "    resMankamo = res[0]\n"\
 "    resGeneral = res[1]\n"\
-"    resFinal = resMankamo + resGeneral + list(point)\n"\
+"    resFinal = resMankamo + resGeneral\n"\
 "    return resFinal, index\n"\
 "\n"\
 "Ndone = 0\n"\
@@ -1203,8 +1203,8 @@ class ECLM(object):
 "t00 = time()\n"\
 "\n"\
 "\n"\
-"# the dimension of res is 9+len(vectImpactTotal)\n"\
-"allResults = ot.Sample(Nbootstrap, 9 + len(totalImpactVector))\n"\
+"# the dimension of res is 9\n"\
+"allResults = ot.Sample(Nbootstrap, 9)\n"\
 "#  Si des calculs ont déjà été faits, on les importe:\n"\
 "try:\n"\
 "    print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
@@ -1215,7 +1215,7 @@ class ECLM(object):
 "except:\n"\
 "    print('No previous results')\n"\
 "\n"\
-"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'] + ['f'+str(i) for i in range(len(totalImpactVector))])\n"\
+"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
 "\n"\
 "# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
 "print('Skip = ', Ndone)\n"\
@@ -1727,9 +1727,15 @@ class ECLM(object):
             ##################################
             # Intervalles de confiance centrés
             KS_dist_PEG_k = KS.build(samplePEG_k)
-            KS_dist_PSG_k = KS.build(samplePSG_k)
+            if (k==0):
+                KS_dist_PSG_k = ot.DiracFactory().build(samplePSG_k)
+            else:
+                KS_dist_PSG_k = KS.build(samplePSG_k)
             KS_dist_PES_k = KS.build(samplePES_k)
-            KS_dist_PTS_k = KS.build(samplePTS_k)
+            if (k==0):
+                KS_dist_PTS_k = ot.DiracFactory().build(samplePTS_k)
+            else:
+                KS_dist_PTS_k = KS.build(samplePTS_k)
 
             IC_PEG_k = ot.Interval(KS_dist_PEG_k.computeQuantile(quantInf)[0], KS_dist_PEG_k.computeQuantile(quantSup)[0])
             IC_PSG_k = ot.Interval(KS_dist_PSG_k.computeQuantile(quantInf)[0], KS_dist_PSG_k.computeQuantile(quantSup)[0])
@@ -2038,7 +2044,7 @@ class ECLM(object):
 "nIntervalsAsIndices = ot.Indices()\n"\
 "myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
 "\n"\
-"myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices)\n"\
+"myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
 "\n"\
 "def job(inP):\n"\
 "    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
