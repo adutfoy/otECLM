@@ -224,14 +224,7 @@ class ECLM(object):
 
          \hat{P}_t = \sum_{i=1}^n\dfrac{iV_t^{n,N}[i]}{nN}
 
-    Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model and then the expression:
-
-    .. math::
-        :label: optimMankamo
-
-         (P_x, C_{co}, C_x)_{optim}  = \arg \max_{(P_x, C_{co}, C_x)}  \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
-
-    The optimization is done under the following constraints:
+    The parameters must verifiy the following constraints: :
 
     .. math::
 
@@ -242,18 +235,38 @@ class ECLM(object):
              0 \leq d_b = -\dfrac{\sqrt{c_{co}}}{\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)} \\
               0 \leq  d_R   = -\dfrac{\sqrt{1-c_{co}}}{\Phi^{-1}\left( \dfrac{P_t-P_x}{\pi} \right)}
         \end{array}
-
-    Assuming that :math:`P_t \leq \frac{1}{2}`, we can write the constraints as:
+    
+    Assuming that :math:`P_t \leq \frac{1}{2}`, we can write the parameters definition domain  as:
 
     .. math::
-        :label: MankamoConstraints
 
+        \mathcal{D}_{\cL} = \left\{ (P_t, P_x, c_{co}, c_x) \mbox{ verifies } \cS \right\}
+
+        \mathcal{S}=   \left\{
         \begin{array}{l}
             0\leq  P_t \leq \dfrac{1}{2}\\
             0 \leq P_x  \leq \min \left \{P_t, \left (P_t-\dfrac{1}{2}\right ) \left(
             1-\dfrac{1}{2\Phi\left(-\sqrt{1-c_{x}}\right)}\right)^{-1},  \Phi\left(- \sqrt{1-c_{x}}\right) \right \} \\
-            0 \leq c_{co} \leq c_{x} \leq 1 
+            0 \leq c_{co}  \leq 1  \\
+            0 \leq c_{x} \leq 1 
         \end{array}
+        \right.  
+
+    Mankamo adds the following constraint: 
+
+    .. math::
+        :label: MankamoConstraints
+
+         \mathcal{C} = \left\{(c_{co}, c_x)  \mbox{ verifies } c_{co} \leq c_x  \right\}
+
+    which means that :math:`\sigma_x \geq \sigma_b`.
+    
+    Then the optimal :math:`(P_x, C_{co}, C_x)` maximises the log-likelihood of the model and then the expression:
+
+    .. math::
+        :label: optimMankamo
+
+         (P_x, C_{co}, C_x)_{optim}  = \arg \max_{(P_x, C_{co}, C_x) \in \mathcal{D}_{\cL} \cap \mathcal{C}}  \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
     """
 
     
