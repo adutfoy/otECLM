@@ -64,19 +64,32 @@ class ECLM(object):
                             & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k\, ds
         \end{array}
 
-    We get the :math:`\mathrm{PES}(k|n)` probabilities and  :math:`\mathrm{PTS}(k|n)` with the relations:
+    We get the :math:`\mathrm{PSG}(k|n)`,   :math:`\mathrm{PES}(k|n)` and :math:`\mathrm{PTS}(k|n)` and probabilities with the relations:
+
+        .. math::
+            :label: PSG_red
+
+            \mathrm{PSG}(k|n) = \sum_{i=k}^n C_{n-k}^{i-k} \, \mathrm{PEG}(i|n)
 
         .. math::
             :label: PES_red
 
             \mathrm{PES}(k|n) = C_n^k \, \mathrm{PEG}(k|n)
 
-    and
-
         .. math::
             :label: PTS_red
 
              \mathrm{PTS}(k|n) = \sum_{i=k}^n  \mathrm{PES}(i|n)
+
+
+     Note that  for :math:`k=0`, we have:
+
+    .. math::
+
+        \begin{array}{rcl}
+           \mathrm{PSG}(0|n) & = & 1 \\
+           \mathrm{PTS}(0|n) & = & 1
+        \end{array}
 
 
     We use the following set of parameters called *general parameter* :
@@ -104,14 +117,8 @@ class ECLM(object):
 
              \mathrm{PEG}(k|n)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k \left[1-\Phi\left(\dfrac{y-1}{d_R}\right)\right]^{n-k} \, dy
 
-    And the  :math:`\mathrm{PSG}(k|n)` probabilities are written as:
-
-    .. math::
-        :label: PSG_red
-
-        \mathrm{PSG}(k|n)  =    \int_{-\infty}^{+\infty} \left[ \dfrac{\pi}{d_b} \varphi \left(\dfrac{y}{d_b}\right) +  \dfrac{(1-\pi)}{d_x}\varphi \left(\dfrac{y-y_{xm}}{d_x}\right)\right] \left[\Phi\left(\dfrac{y-1}{d_R}\right)\right]^k  \, dy
-
-    Note that for :math:`k=1`, the integral can be computed explicitly:
+    
+    We note that for :math:`k=1`, the integral can be computed explicitly:
 
     .. math::
         :label: PSG1_red
@@ -121,7 +128,7 @@ class ECLM(object):
                  & = & \pi \left[1-\Phi\left(\dfrac{1}{\sqrt{d_b^2+d_R^2}}\right)\right] +  (1-\pi) \left[1-\Phi\left(\dfrac{1-y_{xm}}{\sqrt{d_x^2+d_R^2}}\right)\right]
         \end{array}
 
-    The computation of the :math:`\mathrm{PEG}(k|n)`  and :math:`\mathrm{PSG}(k|n)` probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 50 points.
+    The computation of the :math:`\mathrm{PEG}(k|n)`   probabilities is done with a quadrature method provided at the creation of the class. We advice the :class:`~openturns.GaussLegendre` quadrature with 40 points (default algorithm) applied on the integration interval divided into :math:`n` sub-intervals. We advice to use :math:`n=8` (default value).
 
 
     **The probabilistic model:**
@@ -1089,7 +1096,7 @@ class ECLM(object):
 
         Notes
         -----
-        All the  :math:`\mathrm{PTS}(k|n)` probabilities are computed using :eq:`PSG_red`.
+        All the  :math:`\mathrm{PTS}(k|n)` probabilities are computed using :eq:`PTS_red`.
         """
 
         PTS_list = list()
