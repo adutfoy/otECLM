@@ -443,10 +443,10 @@ class ECLM(object):
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
         myAlgo.setMaximumEvaluationNumber(10000)
-        myAlgo.setMaximumConstraintError(1e-4)
-        myAlgo.setMaximumAbsoluteError(1e-4)
-        myAlgo.setMaximumRelativeError(1e-3)
-        myAlgo.setMaximumResidualError(1e-4)
+        myAlgo.setMaximumConstraintError(1e-5)
+        myAlgo.setMaximumAbsoluteError(1e-5)
+        myAlgo.setMaximumRelativeError(1e-5)
+        myAlgo.setMaximumResidualError(1e-5)
 
         # Point de départ:
         # startingPoint = [Px, Cco, Cx]
@@ -908,68 +908,77 @@ class ECLM(object):
             self.PSGAll[0] = PSG
             return PSG
 
-        pi_weight, db, dx, dR, y_xm = self.generalParameter
-
-        # Numerical range of the Normal() distribution
-        val_min = -7.65
-        val_max =  7.65
-
-        # Numerical integration interval
-        # base load
-        yMin_b = val_min * db
-        yMax_b = val_max * db
-
-        # extreme load
-        yMin_x = val_min * dx + y_xm
-        yMax_x = val_max * dx + y_xm
-
-        inputs   = ["y"]
-        outputs  = ["z"]
-        preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
-        preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
-        # Kernel b
-        # If 0<k<n, the Phi^k(1-Phi)^{n-k} term is zero if either Phi=0 or Phi=1
-        # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
-        # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
-        factor = ""
-        if k > 0:
-            factor += " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
-        formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
-        formula += "z := phib"
-        formula += factor + ";"
-        maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
-
-        # Kernel X
-        formula = preamble + "var phix := " + str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ");"
-        formula += "z := phix"
-        formula += factor + ";"
-        maFctKernelX = ot.SymbolicFunction(inputs, outputs, formula)
-
-        # base load part integration
-        int_b = 0.0
-        if yMin_b < yMax_b:
-            for i in range(self.nIntervals):
-                yMin_i = yMin_b + i * (yMax_b - yMin_b) / self.nIntervals
-                yMax_i = yMin_b + (i + 1) * (yMax_b - yMin_b) / self.nIntervals
-                interval = ot.Interval(yMin_i, yMax_i)
-                int_b += self.integrationAlgo.integrate(maFctKernelB, interval)[0]
-            int_b = pi_weight * int_b
-
-        # extreme load part integration
-        int_x = 0.0
-        if yMin_x < yMax_x:
-            for i in range(self.nIntervals):
-                yMin_i = yMin_x + i * (yMax_x - yMin_x) / self.nIntervals
-                yMax_i = yMin_x + (i + 1) * (yMax_x - yMin_x) / self.nIntervals
-                interval = ot.Interval(yMin_i, yMax_i)
-                int_x += self.integrationAlgo.integrate(maFctKernelX, ot.Interval(yMin_i, yMax_i))[0]
-            int_x = (1-pi_weight) * int_x
-
-        PSG = int_b + int_x
+        PEGs = self.computePEGall()
+        PSG = 0.0
+        for i in range(k, self.n+1):
+            PSG += math.comb(self.n - k, i - k) * PEGs[i]
 
         self.PSGAll[k] = PSG
-
         return PSG
+            
+        
+        # Computation based on numerical integration
+        if False:
+            pi_weight, db, dx, dR, y_xm = self.generalParameter
+
+            # Numerical range of the Normal() distribution
+            val_min = -7.65
+            val_max =  7.65
+
+            # Numerical integration interval
+            # base load
+            yMin_b = val_min * db
+            yMax_b = val_max * db
+
+            # extreme load
+            yMin_x = val_min * dx + y_xm
+            yMax_x = val_max * dx + y_xm
+
+            inputs   = ["y"]
+            outputs  = ["z"]
+            preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
+            preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
+            # Kernel b
+                # If 0<k<n, the Phi^k(1-Phi)^{n-k}ù term is zero if either Phi=0 or Phi=1
+            # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
+            # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
+            factor = " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
+            formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
+            formula += "z := phib"
+            formula += factor + ";"
+            maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
+
+            # Kernel X
+            formula = preamble + "var phix := " + str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ");"
+            formula += "z := phix"
+            formula += factor + ";"
+            maFctKernelX = ot.SymbolicFunction(inputs, outputs, formula)
+
+            # base load part integration
+            int_b = 0.0
+            if yMin_b < yMax_b:
+                for i in range(self.nIntervals):
+                    yMin_i = yMin_b + i * (yMax_b - yMin_b) / self.nIntervals
+                    yMax_i = yMin_b + (i + 1) * (yMax_b - yMin_b) / self.nIntervals
+                    interval = ot.Interval(yMin_i, yMax_i)
+                    int_b += self.integrationAlgo.integrate(maFctKernelB, interval)[0]
+                int_b = pi_weight * int_b
+
+            # extreme load part integration
+            int_x = 0.0
+            if yMin_x < yMax_x:
+                for i in range(self.nIntervals):
+                    yMin_i = yMin_x + i * (yMax_x - yMin_x) / self.nIntervals
+                    yMax_i = yMin_x + (i + 1) * (yMax_x - yMin_x) / self.nIntervals
+                    interval = ot.Interval(yMin_i, yMax_i)
+                    int_x += self.integrationAlgo.integrate(maFctKernelX, ot.Interval(yMin_i, yMax_i))[0]
+                int_x = (1-pi_weight) * int_x
+
+            PSG = int_b + int_x
+
+            self.PSGAll[k] = PSG
+
+            return PSG
 
 
     def computePSGall(self):
@@ -1089,17 +1098,6 @@ class ECLM(object):
         return PTS_list
 
 
-    def jobEstimateBootstrapParamSampleFromMankamo(self, inP):
-        point, startingPoint = inP
-        vectImpactTotal = ot.Indices([int(round(x)) for x in point])
-        self.setTotalImpactVector(vectImpactTotal)
-        res = self.estimateMaxLikelihoodFromMankamo(startingPoint, False)
-        resMankamo = res[0]
-        resGeneral = res[1]
-        resFinal = resMankamo + resGeneral
-        return resFinal
-
-
     def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blockSize=256):
         r"""
         Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
@@ -1119,11 +1117,12 @@ class ECLM(object):
         -----
         The Mankamo parameter sample is obtained by bootstraping the empirical law of the total impact vector :math:`N_b` times. The total empirical impact vector follows the distribution MultiNomial parameterized by the empirical probabilities :math:`[p_0^{emp},\dots, p_n^{emp}]` where :math:`p_k^{emp} = \dfrac{V_t^{n,N}[k]}{N}` and :math:`N` is the number of tests and demands on the whole group. Then the optimisation problem :eq:`optimMankamo` is solved using the specified starting point.
 
-        The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
+        The function generates a script *script_bootstrap_ParamFromMankamo.py* that uses the parallelisation of the pool object of the multiprocessing module. It also creates a file *myECLMxxx.xml*, where xxx is a large random integer, that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
-        myStudy = ot.Study('myECLM.xml')
+        studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
+        myStudy = ot.Study(studyName)
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
@@ -1170,7 +1169,7 @@ class ECLM(object):
 "\n"\
 "\n"\
 "# Import de vectImpactTotal, startingPoint et nIntervals\n"\
-"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy = ot.Study('" + studyName + "')\n"\
 "myStudy.load()\n"\
 "integrationAlgo = ot.IntegrationAlgorithm()\n"\
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
@@ -1196,7 +1195,7 @@ class ECLM(object):
 "    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
 "    resMankamo = res[0]\n"\
 "    resGeneral = res[1]\n"\
-"    resFinal = resMankamo + resGeneral\n"\
+"    resFinal = resMankamo + resGeneral + list(point)\n"\
 "    return resFinal, index\n"\
 "\n"\
 "Ndone = 0\n"\
@@ -1204,8 +1203,8 @@ class ECLM(object):
 "t00 = time()\n"\
 "\n"\
 "\n"\
-"# the dimension of res is 9\n"\
-"allResults = ot.Sample(Nbootstrap, 9)\n"\
+"# the dimension of res is 9+len(vectImpactTotal)\n"\
+"allResults = ot.Sample(Nbootstrap, 9 + len(totalImpactVector))\n"\
 "#  Si des calculs ont déjà été faits, on les importe:\n"\
 "try:\n"\
 "    print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
@@ -1216,7 +1215,7 @@ class ECLM(object):
 "except:\n"\
 "    print('No previous results')\n"\
 "\n"\
-"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
+"allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'] + ['f'+str(i) for i in range(len(totalImpactVector))])\n"\
 "\n"\
 "# On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
 "print('Skip = ', Ndone)\n"\
@@ -1248,7 +1247,7 @@ class ECLM(object):
         command =  'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nbootstrap, blockSize, fileNameRes)
         os.system(command)
         os.remove(fileName)
-        os.remove("myECLM.xml")
+        os.remove(studyName)
 
 
     def computeECLMProbabilitiesFromMankano(self, fileNameInput, fileNameRes, blockSize=256):
@@ -1268,12 +1267,14 @@ class ECLM(object):
         -----
         The ECLM probabilities are computed using the Mankamo assumption :eq:`mankamoHyp`. They are returned according to the order :math:`(\mathrm{PEG}(0|n), \dots, \mathrm{PEG}(n|n), \mathrm{PSG}(0|n), \dots, \mathrm{PSG}(n|n), \mathrm{PES}(0|n), \dots, \mathrm{PES}(n|n), \mathrm{PTS}(0|n), \dots, \mathrm{PTS}(n|n))` using equations :eq:`PEG_red`, :eq:`PSG_red`, :eq:`PES_red`, :eq:`PTS_red`, using the Mankamo assumption :eq:`mankamoHyp`.
 
-        The function generates the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
+        The function generates the script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLMxxx.xml*, where xxx is a large random integer,  that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
         """
 
-        myStudy = ot.Study('myECLM.xml')
+        studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
+        myStudy = ot.Study(studyName)
+
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
@@ -1323,7 +1324,7 @@ class ECLM(object):
 "print('n, fileNameInput, fileNameRes = ', n, fileNameInput, fileNameRes)\n"\
 "\n"\
 "# Import de  vectImpactTotal et startingPoint\n"\
-"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy = ot.Study('" + studyName + "')\n"\
 "myStudy.load()\n"\
 "integrationAlgo = ot.IntegrationAlgorithm()\n"\
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
@@ -1409,7 +1410,7 @@ class ECLM(object):
         command =  'python script_bootstrap_ECLMProbabilities.py {} {} {} {}'.format(self.n, blockSize, fileNameInput, fileNameRes)
         os.system(command)
         os.remove(fileName)
-        os.remove("myECLM.xml")
+        os.remove(studyName)
 
 
     def analyseGraphsECLMParam(self, fileNameSample):
@@ -1458,9 +1459,9 @@ class ECLM(object):
             Histo = ot.HistogramFactory().build(sample)
             KS = ot.KernelSmoothing()
             KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
-            KS.setLowerBound(0.0)
-            KS.setUpperBound(1.1)
+            #KS.setBoundingOption(ot.KernelSmoothing.BOTH)
+            #KS.setLowerBound(0.0)
+            #KS.setUpperBound(1.1)
             KS_dist = KS.build(sample)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
@@ -1816,29 +1817,40 @@ class ECLM(object):
             descMargPEG.add('PEG_'+str(k))
 
             # PSG
-            Histo = ot.HistogramFactory().build(samplePSG_k)
-            graph = Histo.drawPDF()
-            leg = ot.Description(1,'Histo')
-            graph.add(KS_dist_PSG_k.drawPDF())
-            leg.add('KS')
-            graph.setColors(colors[0:2])
-            graph.setLegends(leg)
-            nbFact = len(factoryColl)
-            for i in range(nbFact):
-                try:
-                    dist = factoryColl[i].build(samplePSG_k)
-                    draw = dist.drawPDF().getDrawable(0)
-                    draw.setColor(colors[i+2])
-                    draw.setLegend(dist.getName())
-                    graph.add(draw)
-                except:
-                    pass
-                    
-            graph.setLegendPosition('topright')
-            graph.setXTitle(descPSG[k])
-            graph.setTitle('PSG('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PSG_k)
-            graphMargPSG_list.append(graph)
-            descMargPSG.add('PSG_'+str(k))
+            if (k > 0):
+                Histo = ot.HistogramFactory().build(samplePSG_k)
+                graph = Histo.drawPDF()
+                leg = ot.Description(1,'Histo')
+                graph.add(KS_dist_PSG_k.drawPDF())
+                leg.add('KS')
+                graph.setColors(colors[0:2])
+                graph.setLegends(leg)
+                nbFact = len(factoryColl)
+                for i in range(nbFact):
+                    try:
+                        dist = factoryColl[i].build(samplePSG_k)
+                        draw = dist.drawPDF().getDrawable(0)
+                        draw.setColor(colors[i+2])
+                        draw.setLegend(dist.getName())
+                        graph.add(draw)
+                    except:
+                        pass
+
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPSG[k])
+                graph.setTitle('PSG('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PSG_k)
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PSG_'+str(k))
+            else:
+                dist = ot.DiracFactory().build(samplePSG_k)
+                graph = dist.drawPDF()
+                leg = ot.Description(1,'Dirac')
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPSG[k])
+                graph.setTitle('PSG('+str(k) + '|' + str(n) + ')')
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PSG_'+str(k))
+
 
             # PES
             Histo = ot.HistogramFactory().build(samplePES_k)
@@ -1866,29 +1878,39 @@ class ECLM(object):
             descMargPES.add('PES_'+str(k))
 
             # PTS
-            Histo = ot.HistogramFactory().build(samplePTS_k)
-            graph = Histo.drawPDF()
-            leg = ot.Description(1,'Histo')
-            graph.add(KS_dist_PTS_k.drawPDF())
-            leg.add('KS')
-            graph.setColors(colors[0:2])
-            graph.setLegends(leg)
-            nbFact = len(factoryColl)
-            for i in range(nbFact):
-                try:
-                    dist = factoryColl[i].build(samplePTS_k)
-                    draw = dist.drawPDF().getDrawable(0)
-                    draw.setColor(colors[i+2])
-                    draw.setLegend(dist.getName())
-                    graph.add(draw)
-                except:
-                    pass
+            if (k > 0):
+                Histo = ot.HistogramFactory().build(samplePTS_k)
+                graph = Histo.drawPDF()
+                leg = ot.Description(1,'Histo')
+                graph.add(KS_dist_PTS_k.drawPDF())
+                leg.add('KS')
+                graph.setColors(colors[0:2])
+                graph.setLegends(leg)
+                nbFact = len(factoryColl)
+                for i in range(nbFact):
+                    try:
+                        dist = factoryColl[i].build(samplePTS_k)
+                        draw = dist.drawPDF().getDrawable(0)
+                        draw.setColor(colors[i+2])
+                        draw.setLegend(dist.getName())
+                        graph.add(draw)
+                    except:
+                        pass
 
-            graph.setLegendPosition('topright')
-            graph.setXTitle(descPTS[k])
-            graph.setTitle('PTS('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PTS_k)
-            graphMargPTS_list.append(graph)
-            descMargPTS.add('PTS_'+str(k))
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPTS[k])
+                graph.setTitle('PTS('+str(k) + '|' + str(n) + ') - best model : ' +   best_model_PTS_k)
+                graphMargPTS_list.append(graph)
+                descMargPTS.add('PTS_'+str(k))
+            else:
+                dist = ot.DiracFactory().build(samplePSG_k)
+                graph = dist.drawPDF()
+                leg = ot.Description(1,'Dirac')
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPSG[k])
+                graph.setTitle('PTS('+str(k) + '|' + str(n) + ')')
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PTS_'+str(k))
 
         return [IC_PEG_list, IC_PSG_list, IC_PES_list, IC_PTS_list], [graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list] , [descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
@@ -1950,14 +1972,16 @@ class ECLM(object):
 
         Notes
         -----
-        The function generates the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLM.xml* that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
+        The function generates the script *script_bootstrap_KMax.py* that uses the parallelisation of the pool object of the multiprocessing module.  It also creates a file *myECLMxxx.xml*, where xxx is a large random integer,  that stores the total impact vector to be read by the script. Both files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
         The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
         """
 
-        myStudy = ot.Study('myECLM.xml')
+        studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
+        myStudy = ot.Study(studyName)
+
         myStudy.add('integrationAlgo', self.integrationAlgo)
         myStudy.add('totalImpactVector', ot.Indices(self.totalImpactVector))
         myStudy.add('nIntervalsAsIndices', ot.Indices(1, self.nIntervals))
@@ -2005,7 +2029,7 @@ class ECLM(object):
 "print('p, fileNameInput, fileNameRes = ', p, fileNameInput, fileNameRes)\n"\
 "\n"\
 "# Import de  vectImpactTotal\n"\
-"myStudy = ot.Study('myECLM.xml')\n"\
+"myStudy = ot.Study('" + studyName + "')\n"\
 "myStudy.load()\n"\
 "integrationAlgo = ot.IntegrationAlgorithm()\n"\
 "myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
@@ -2077,7 +2101,7 @@ class ECLM(object):
         command =  'python script_bootstrap_KMax.py {} {} {} {}'.format(p, blockSize, fileNameInput, fileNameRes)
         os.system(command)
         os.remove(fileName)
-        os.remove("myECLM.xml")
+        os.remove(studyName)
 
         # Loi KS
         sampleKmax = ot.Sample.ImportFromCSVFile(fileNameRes)
