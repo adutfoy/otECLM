@@ -55,15 +55,6 @@ class ECLM(object):
                           & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k \left[1-F_R(s)\right]^{n-k} \, ds
         \end{array}
 
-    and the  :math:`\mathrm{PSG}(k|n)` probabilities are defined as:
-
-    .. math::
-
-        \begin{array}{rcl}
-          \mathrm{PSG}(k|n) & = & \mathbb{P}\left[S>R_1, \dots, S>R_k\right]\\
-                            & = &  \int_{s\in  \mathbb{R}} f_S(s) \left[F_R(s)\right]^k\, ds
-        \end{array}
-
     We get the :math:`\mathrm{PSG}(k|n)`,   :math:`\mathrm{PES}(k|n)` and :math:`\mathrm{PTS}(k|n)` and probabilities with the relations:
 
         .. math::
