@@ -1648,6 +1648,7 @@ class ECLM(object):
             # Graphe des probabilités PTS(k|n)
             if (k > 0):
                 Histo = ot.HistogramFactory().build(samplePTS_k)
+                KS_dist = KS.build(samplePTS_k)
                 graph = Histo.drawPDF()
                 graph.add(KS_dist.drawPDF())
                 graph.setColors(['blue', 'red'])
