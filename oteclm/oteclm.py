@@ -1446,7 +1446,7 @@ class ECLM(object):
 
         Notes
         -----
-        i        The  marginal distributions are first estimated for the Mankamo parameter :eq:`MankamoParam` then for the general parameter :eq:`generalParam`.
+        The  marginal distributions are first estimated for the Mankamo parameter :eq:`MankamoParam` then for the general parameter :eq:`generalParam`.
 
         Each distribution is approximated with a Histogram and a normal kernel smoothing.
         """
@@ -1576,6 +1576,12 @@ class ECLM(object):
         descMargPES = ot.Description()
         descMargPTS = ot.Description()
 
+        KS = ot.KernelSmoothing()
+        KS.setBoundaryCorrection(True)
+        KS.setBoundingOption(ot.KernelSmoothing.BOTH)
+        KS.setLowerBound(0.0)
+        KS.setUpperBound(1.1)
+
 
         for k in range(kMax+1):
             samplePEG_k = samplePEG.getMarginal(k)
@@ -1595,11 +1601,6 @@ class ECLM(object):
 
             # Graphe des lois marginales PEG(k|n)
             Histo = ot.HistogramFactory().build(samplePEG_k)
-            KS = ot.KernelSmoothing()
-            KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
-            KS.setLowerBound(0.0)
-            KS.setUpperBound(1.1)
             KS_dist = KS.build(samplePEG_k)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
@@ -1612,11 +1613,10 @@ class ECLM(object):
 
             # Graphe des probabilités PSG(k)
             Histo = ot.HistogramFactory().build(samplePSG_k)
-            KS = ot.KernelSmoothing()
-            KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
-            KS.setLowerBound(0.0)
-            KS.setUpperBound(1.1)
+            if (k==0):
+                KS_dist = ot.DiracFactory().build(samplePSG_k)
+            else:
+                KS_dist = KS.build(samplePSG_k)
             KS_dist = KS.build(samplePSG_k)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
@@ -1629,11 +1629,6 @@ class ECLM(object):
 
             # Graphe des lois marginales PES(k|n)
             Histo = ot.HistogramFactory().build(samplePES_k)
-            KS = ot.KernelSmoothing()
-            KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
-            KS.setLowerBound(0.0)
-            KS.setUpperBound(1.1)
             KS_dist = KS.build(samplePES_k)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
@@ -1646,12 +1641,10 @@ class ECLM(object):
 
             # Graphe des probabilités PTS(k|n)
             Histo = ot.HistogramFactory().build(samplePTS_k)
-            KS = ot.KernelSmoothing()
-            KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
-            KS.setLowerBound(0.0)
-            KS.setUpperBound(1.1)
-            KS_dist = KS.build(samplePTS_k)
+            if (k==0):
+                KS_dist = ot.DiracFactory().build(samplePTS_k)
+            else:
+                KS_dist = KS.build(samplePTS_k)
             graph = Histo.drawPDF()
             graph.add(KS_dist.drawPDF())
             graph.setColors(['blue', 'red'])
