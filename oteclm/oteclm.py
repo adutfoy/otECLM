@@ -1612,20 +1612,26 @@ class ECLM(object):
             descMargPEG.add('PEG_'+str(k))
 
             # Graphe des probabilités PSG(k)
-            Histo = ot.HistogramFactory().build(samplePSG_k)
-            if (k==0):
-                KS_dist = ot.DiracFactory().build(samplePSG_k)
-            else:
+            if (k > 0):
+                Histo = ot.HistogramFactory().build(samplePSG_k)
                 KS_dist = KS.build(samplePSG_k)
-            KS_dist = KS.build(samplePSG_k)
-            graph = Histo.drawPDF()
-            graph.add(KS_dist.drawPDF())
-            graph.setColors(['blue', 'red'])
-            graph.setLegends(['Histo', 'KS'])
-            graph.setLegendPosition('topright')
-            graph.setXTitle(descPSG[k])
-            graphMargPSG_list.append(graph)
-            descMargPSG.add('PSG_'+str(k))
+                graph = Histo.drawPDF()
+                graph.add(KS_dist.drawPDF())
+                graph.setColors(['blue', 'red'])
+                graph.setLegends(['Histo', 'KS'])
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPSG[k])
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PSG_'+str(k))
+            else:
+                KS_dist = ot.DiracFactory().build(samplePSG_k)
+                graph = KS_dist.drawPDF()
+                graph.setColors(['red'])
+                graph.setLegends(['KS'])
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPSG[k])
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PSG_'+str(k))
 
             # Graphe des lois marginales PES(k|n)
             Histo = ot.HistogramFactory().build(samplePES_k)
@@ -1640,19 +1646,25 @@ class ECLM(object):
             descMargPES.add('PES_'+str(k))
 
             # Graphe des probabilités PTS(k|n)
-            Histo = ot.HistogramFactory().build(samplePTS_k)
-            if (k==0):
-                KS_dist = ot.DiracFactory().build(samplePTS_k)
+            if (k > 0):
+                Histo = ot.HistogramFactory().build(samplePTS_k)
+                graph = Histo.drawPDF()
+                graph.add(KS_dist.drawPDF())
+                graph.setColors(['blue', 'red'])
+                graph.setLegends(['Histo', 'KS'])
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPTS[k])
+                graphMargPTS_list.append(graph)
+                descMargPTS.add('PTS_'+str(k))
             else:
-                KS_dist = KS.build(samplePTS_k)
-            graph = Histo.drawPDF()
-            graph.add(KS_dist.drawPDF())
-            graph.setColors(['blue', 'red'])
-            graph.setLegends(['Histo', 'KS'])
-            graph.setLegendPosition('topright')
-            graph.setXTitle(descPTS[k])
-            graphMargPTS_list.append(graph)
-            descMargPTS.add('PTS_'+str(k))
+                KS_dist = ot.DiracFactory().build(samplePTS_k)
+                graph = KS_dist.drawPDF()
+                graph.setColors(['red'])
+                graph.setLegends(['KS'])
+                graph.setLegendPosition('topright')
+                graph.setXTitle(descPTS[k])
+                graphMargPSG_list.append(graph)
+                descMargPSG.add('PTS_'+str(k))
 
         return [graphPairsPEG, graphPairsPSG, graphPairsPES, graphPairsPTS], graphPEG_PES_PTS_list, graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list, [descPairs, descPEG_PES_PTS, descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
