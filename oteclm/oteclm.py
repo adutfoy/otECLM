@@ -1664,8 +1664,8 @@ class ECLM(object):
                 graph.setLegends(['KS'])
                 graph.setLegendPosition('topright')
                 graph.setXTitle(descPTS[k])
-                graphMargPSG_list.append(graph)
-                descMargPSG.add('PTS_'+str(k))
+                graphMargPTS_list.append(graph)
+                descMargPTS.add('PTS_'+str(k))
 
         return [graphPairsPEG, graphPairsPSG, graphPairsPES, graphPairsPTS], graphPEG_PES_PTS_list, graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list, [descPairs, descPEG_PES_PTS, descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
