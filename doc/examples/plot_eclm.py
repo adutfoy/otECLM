@@ -71,9 +71,22 @@ print('general parameter : ', generalParam)
 print('finalLogLikValue : ', finalLogLikValue)
 
 # %%
-gl = ot.GridLayout(2,3)
+# Function to deactivate grid in GridLayout to make matplotlib happy
+def deactivateGrid(gl):
+    for i in range(gl.getNbRows()):
+        for j in range(gl.getNbColumns()):
+            g = gl.getGraph(i, j)
+            g.setGrid(False)
+            gl.setGraph(i, j, g)
+    return gl
+
+gl = ot.GridLayout(2, 3)
 for i in range(6):
-    gl.setGraph(i//3, i%3, graphesCol[i])
+    g = graphesCol[i]
+    gl.setGraph(i//3, i%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
@@ -132,10 +145,16 @@ myECLM.computeECLMProbabilitiesFromMankano(fileNameSampleParam, fileNameECLMProb
 graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam = myECLM.analyseGraphsECLMParam(fileNameSampleParam)
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairsMankamoParam = deactivateGrid(graphPairsMankamoParam)
+
 view = View(graphPairsMankamoParam)
 view.show()
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairsGeneralParam = deactivateGrid(graphPairsGeneralParam)
+
 view = View(graphPairsGeneralParam)
 view.show()
 
@@ -144,7 +163,11 @@ view.show()
 # %%
 gl = ot.GridLayout(3,3)
 for k in range(len(graphMarg_list)):
-    gl.setGraph(k//3, k%3, graphMarg_list[k])
+    g = graphMarg_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
@@ -168,18 +191,30 @@ descMargPES = desc_list[4]
 descMargPTS = desc_list[5]
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairs_list[0] = deactivateGrid(graphPairs_list[0])
+
 view = View(graphPairs_list[0])
 view.show()
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairs_list[1] = deactivateGrid(graphPairs_list[1])
+
 view = View(graphPairs_list[1])
 view.show()
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairs_list[2] = deactivateGrid(graphPairs_list[2])
+
 view = View(graphPairs_list[2])
 view.show()
 
 # %%
+# Deactivate grid to make matplotlib happy
+graphPairs_list[3] = deactivateGrid(graphPairs_list[3])
+
 view = View(graphPairs_list[3])
 view.show()
 
@@ -187,35 +222,53 @@ view.show()
 # Fix a k <=kMax
 
 k = 0
-view = View(graphPEG_PES_PTS_list[k])
+gl = graphPEG_PES_PTS_list[k]
+gl = deactivateGrid(gl)
+view = View(gl)
 view.show()
 
 # %%
 len(graphMargPEG_list)
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPEG_list)):
-    gl.setGraph(k//3, k%3, graphMargPEG_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPEG_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPSG_list)):
-    gl.setGraph(k//3, k%3, graphMargPSG_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPSG_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPES_list)):
-    gl.setGraph(k//3, k%3, graphMargPES_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPES_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPTS_list)):
-    gl.setGraph(k//3, k%3, graphMargPTS_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPTS_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
@@ -251,30 +304,46 @@ for k in range(len(IC_PTS_list)):
 # We draw all the estimated distributions and the title gives the best model.
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPEG_list)):
-    gl.setGraph(k//3, k%3, graphMargPEG_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPEG_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPSG_list)):
-    gl.setGraph(k//3, k%3, graphMargPSG_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPSG_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPES_list)):
-        gl.setGraph(k//3, k%3, graphMargPES_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPES_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
 # %%
-gl = ot.GridLayout(2,3)
-for k in range(len(graphMargPTS_list)):
-    gl.setGraph(k//3, k%3, graphMargPTS_list[k])
+gl = ot.GridLayout(2, 3)
+for k in range(6):
+    g = graphMargPTS_list[k]
+    gl.setGraph(k//3, k%3, g)
+
+# Deactivate grid to make matplotlib happy
+gl = deactivateGrid(gl)
 view = View(gl)
 view.show()
 
@@ -305,5 +374,6 @@ fileNameSampleKmax = 'sampleKmaxFromMankamo_{}_{}.csv'.format(Nbootstrap, nameSe
 gKmax = myECLM.computeAnalyseKMaxSample(p, fileNameSampleParam, fileNameSampleKmax)
 
 # %%
+gKmax.setGrid(False)
 view = View(gKmax)
 view.show()

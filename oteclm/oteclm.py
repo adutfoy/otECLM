@@ -1931,14 +1931,14 @@ class ECLM(object):
                 graphMargPTS_list.append(graph)
                 descMargPTS.add('PTS_'+str(k))
             else:
-                dist = ot.DiracFactory().build(samplePSG_k)
+                dist = ot.DiracFactory().build(samplePTS_k)
                 graph = dist.drawPDF()
                 leg = ot.Description(1,'Dirac')
                 graph.setLegendPosition('topright')
                 graph.setXTitle(descPSG[k])
                 graph.setTitle('PTS('+str(k) + '|' + str(n) + ')')
-                graphMargPSG_list.append(graph)
-                descMargPSG.add('PTS_'+str(k))
+                graphMargPTS_list.append(graph)
+                descMargPTS.add('PTS_'+str(k))
 
         return [IC_PEG_list, IC_PSG_list, IC_PES_list, IC_PTS_list], [graphMargPEG_list, graphMargPSG_list, graphMargPES_list, graphMargPTS_list] , [descMargPEG, descMargPSG, descMargPES, descMargPTS]
 
