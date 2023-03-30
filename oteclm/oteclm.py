@@ -270,10 +270,13 @@ class ECLM(object):
     """
 
     
-    def __init__(self, totalImpactVector, integrationAlgo=ot.GaussLegendre([40]), nIntervals=8, verbose=False):
+    def __init__(self, totalImpactVector, integrationAlgo=None, nIntervals=8, verbose=False):
         # set attribute
         self.totalImpactVector = totalImpactVector
-        self.integrationAlgo = integrationAlgo
+        if integrationAlgo is None:
+            self.integrationAlgo = ot.GaussLegendre([40])
+        else:
+            self.integrationAlgo = integrationAlgo
         self.nIntervals = nIntervals
         self.n = self.totalImpactVector.getSize()-1
         self.verbose = verbose
