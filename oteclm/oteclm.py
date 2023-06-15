@@ -126,14 +126,7 @@ class ECLM(object):
 
     We denote by :math:`N^n` the random variable that counts the number of failure events in the CCF group under one test or demand. Then the range of :math:`N^n` is :math:`[0, n]` and its probability law is :math:`\mathbb{P}\left[N^n=k\right] = \mathrm{PES}(k|n)`.
 
-    Under :math:`N` test or demands, we denote by :math:`N^{n,N}_t` the random variable that counts the number of times when :math:`k` failure events have occured, for each :math:`k` in :math:`[0, n]`:
-
-    .. math::
-        :label: NnNt
-
-        N^{n,N}_t = \sum_{k=1}^N N^n_k
-
-    where the random variables :math:`(N^n_1, \dots, N^n_N)` are independent and identically distributed as :math:`N^n`. The :math:`N^{n,N}_t` follows a Multinomial distribution parameterized by :math:`(N,(p_0, \dots, p_n))` with:
+    Under :math:`N` test or demands, we denote by :math:`N^{n,N}_t` the random variable that counts the number of times when :math:`k` failure events have occured, for each :math:`k` in :math:`[0, n]`. Then :math:`N^{n,N}_t` follows a Multinomial distribution parameterized by :math:`(N,(p_0, \dots, p_n))` with:
 
     .. math::
 
