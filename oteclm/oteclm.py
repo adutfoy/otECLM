@@ -1996,7 +1996,7 @@ class ECLM(object):
 
         The :math:`k_{max}` sample is stored in the same order as the parameters sample.
 
-        The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
+        The empirical distribution is fitted on the sample. The :mth:`90\%` confidence interval is given, computed from the empirical distribution.
         """
 
         studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
@@ -2154,7 +2154,7 @@ class ECLM(object):
         graph.setTitle(r'Loi de $K_{max} = \arg \max \{k | PTS(k|$'+ str(self.n) + r'$) \geq $'+ format(p,'.1e') + r'$\}$')
 
         # IC à 90%
-        print('Intervalle de confiance de niveau 90%: [', UD_dist_KMax.computeQuantile(0.05)[0], ', ', UD_dist_KMax.computeQuantile(0.95)[0], ']')
+        print('Confidence interval of level 90%: [', UD_dist_KMax.computeQuantile(0.05)[0], ', ', UD_dist_KMax.computeQuantile(0.95)[0], ']')
 
         return graph
 

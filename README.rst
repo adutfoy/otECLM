@@ -4,8 +4,8 @@ oteclm module
 oteclm is an OpenTURNS module. It allows the treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load Model (ECLM) .
 
 
-Build from archive
-==================
+Install from archive
+====================
 
 Get the archive:
 
@@ -21,8 +21,8 @@ The install procedure is performed as follows:
     $ python install otECLM-main.zip
    
 
-Build from source
-=================
+Install from source
+===================
 
 Get source:
 

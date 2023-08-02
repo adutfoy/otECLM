@@ -127,13 +127,18 @@ Nbootstrap = 100
 # %%
 startingPoint = mankamoParam[1:4]
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
-myECLM.estimateBootstrapParamSampleFromMankamo(Nbootstrap, startingPoint, fileNameSampleParam)
+# We use the parallalisation
+parallel = True
+blocksize = 256
+myECLM.estimateBootstrapParamSampleFromMankamo(Nbootstrap, startingPoint, fileNameSampleParam, blocksize, parallel)
 
 # Create the sample of all the ECLM probabilities associated to the sample of the parameters.
 
 # %%
 fileNameECLMProbabilities = 'sampleECLMProbabilitiesFromMankamo_{}.csv'.format(Nbootstrap)
-myECLM.computeECLMProbabilitiesFromMankano(fileNameSampleParam, fileNameECLMProbabilities)
+# We use the parallalisation
+parallel = True
+myECLM.computeECLMProbabilitiesFromMankano(fileNameSampleParam, fileNameECLMProbabilities, blocksize, parallel)
 
 # %%
 # Graphically analyse the bootstrap sample of parameters
@@ -371,7 +376,9 @@ print('kMax = ', kMax)
 # %%
 fileNameSampleParam = 'sampleParamFromMankamo_{}.csv'.format(Nbootstrap)
 fileNameSampleKmax = 'sampleKmaxFromMankamo_{}_{}.csv'.format(Nbootstrap, nameSeuil)
-gKmax = myECLM.computeAnalyseKMaxSample(p, fileNameSampleParam, fileNameSampleKmax)
+# We use the parallalisation
+parallel = True
+gKmax = myECLM.computeAnalyseKMaxSample(p, fileNameSampleParam, fileNameSampleKmax, blocksize, parallel)
 
 # %%
 gKmax.setGrid(False)
