@@ -52,7 +52,7 @@ myECLM = oteclm.ECLM(vectImpactTotal, ot.GaussLegendre([50]))
 
 # %%
 startingPoint = [5.0e-3, 0.51, 0.85]
-print(myECLM.verifyMankamoConstraints(startingPoint))
+print('Proposed starting point valid?: ', myECLM.verifyMankamoConstraints(startingPoint))
 
 # %%
 # If the point is not valid, we can ask for a valid one by giving $C_x$.

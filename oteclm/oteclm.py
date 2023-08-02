@@ -13,6 +13,7 @@ class ECLM(object):
     ---------- 
     totalImpactVector : :class:`~openturns.Indices`
         The total impact vector of the common cause failure (CCF) group.
+
     integrationAlgo : :class:`~openturns.IntegrationAlgorithm`
         The integration algorithm used to compute the integrals.
 
@@ -290,18 +291,35 @@ class ECLM(object):
         self.eps = 1e-9
 
         # Definition domain of the log-likelihood
-        formula  = "var terme1 := (Cx >= 1 ? 0.5 - 5e-16 : 0.5 - 0.5 * erf(sqrt(1.0 - Cx) / sqrt(2)));"
-        formula += "var terme2 := " + str(Pt - 0.5) + " / (1.0 - 1.0 / (2.0 * terme1));"
-        formula += "var Px := exp(logPx);"
-        formula += "out0 := " + str(Pt) + " - Px;";
-        formula += "out1 := terme1 - Px;"
-        formula += "out2 := terme2 - Px;"
-        formula += "out3 := Cx;"
-        formula += "out4 := 1.0 - Cx;"
-        formula += "out5 := Cco;"
-        formula += "out6 := 1.0 - Cco;"
-        formula += "out7 := Cx - Cco;"
-        self.MankamoConstraints = ot.SymbolicFunction(["logPx", "Cco", "Cx"], ["out" + str(i) for i in range(8)], formula)
+        USE_EXPRTK_COMPLEX_LANGUAGE = False
+        if USE_EXPRTK_COMPLEX_LANGUAGE:
+            formula  = "var terme1 := (Cx >= 1 ? 0.5 - 5e-16 : 0.5 - 0.5 * erf(sqrt(1.0 - Cx) / sqrt(2)));"
+            formula += "var terme2 := " + str(Pt - 0.5) + " / (1.0 - 1.0 / (2.0 * terme1));"
+            formula += "var Px := exp(logPx);"
+            formula += "out0 := " + str(Pt) + " - Px;"
+            formula += "out1 := terme1 - Px;"
+            formula += "out2 := terme2 - Px;"
+            formula += "out3 := Cx;"
+            formula += "out4 := 1.0 - Cx;"
+            formula += "out5 := Cco;"
+            formula += "out6 := 1.0 - Cco;"
+            formula += "out7 := Cx - Cco"
+            self.MankamoConstraints = ot.SymbolicFunction(["logPx", "Cco", "Cx"], ["out" + str(i) for i in range(8)], formula)
+            # To insure that the parser is actually compiled
+            _ = self.MankamoConstraints([0.1, 0.2, 0.3])
+        else:
+            formulas = ot.Description(8)
+            formulas[0] = str(Pt) + " - exp(logPx)"
+            formulas[1] = "(Cx >= 1 ? 0.5 - 5e-16 : 0.5 - 0.5 * erf(sqrt(1.0 - Cx) / sqrt(2))) - exp(logPx)"
+            formulas[2] = str(Pt - 0.5) + " / (1.0 - 1.0 / (2.0 * (Cx >= 1 ? 0.5 - 5e-16 : 0.5 - 0.5 * erf(sqrt(1.0 - Cx) / sqrt(2))))) - exp(logPx)"
+            formulas[3] = "Cx"
+            formulas[4] = "1.0 - Cx"
+            formulas[5] = "Cco"
+            formulas[6] = "1.0 - Cco"
+            formulas[7] = "Cx - Cco"
+            self.MankamoConstraints = ot.SymbolicFunction(["logPx", "Cco", "Cx"], formulas)
+            # To insure that the parser is actually compiled
+            _ = self.MankamoConstraints([0.1, 0.2, 0.3])
 
         # Cache for the PEG
         self.PEGAll = ot.Point(self.n + 1, -1.0)
@@ -387,7 +405,6 @@ class ECLM(object):
             if self.verbose:
                 print("X=", ot.Point(X), "does not satisfy the Mankamo constraints")
             value = -ot.SpecFunc.LogMaxScalar
-            print(f"ko {value=}")
             return [value]
 
         
@@ -402,7 +419,6 @@ class ECLM(object):
                 log_PEG_k = math.log(val)
                 S += self.totalImpactVector[k] * log_PEG_k
         value = S / sum(self.totalImpactVector)
-        print(f"ok {value=}")
         return [value]
     
 
@@ -414,7 +430,8 @@ class ECLM(object):
         ----------
         startingPoint : :class:`~openturns.Point`
             Starting point :math:`(P_x, C_{co}, C_x)` for the optimization problem.
-        visuLikelihood : Bool
+
+        visuLikelihood : bool
             Produces the graph of the log-likelihood function at the optimal point.
             Default value is False.
 
@@ -424,6 +441,7 @@ class ECLM(object):
             The optimal point :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` where :math:`y_{xm} = 1-d_R`.
         finalLogLikValue : float
             The value of the reduced log-likelihood function :eq:`optimGenReduced` at the optimal point.
+
         graphList : list of :class:`~openturns.Graph`
             The collection of graphs drawing the log-likelihood function at the optimal point when one or two components are fixed.
 
@@ -454,7 +472,7 @@ class ECLM(object):
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
         myAlgo.setMaximumEvaluationNumber(10000)
-        myAlgo.setMaximumConstraintError(0.0)
+        myAlgo.setMaximumConstraintError(1e-4)
         myAlgo.setMaximumAbsoluteError(1e-4)
         myAlgo.setMaximumRelativeError(1e-3)
         myAlgo.setMaximumResidualError(1e-4)
@@ -472,12 +490,6 @@ class ECLM(object):
         myAlgo.run()
 
         result = myAlgo.getResult()
-        result.getAbsoluteErrorHistory().exportToCSVFile("AbsoluteErrorHistory.csv")
-        result.getRelativeErrorHistory().exportToCSVFile("RelativeErrorHistory.csv")
-        result.getResidualErrorHistory().exportToCSVFile("ResidualErrorHistory.csv")
-        result.getConstraintErrorHistory().exportToCSVFile("ConstraintErrorHistory.csv")
-        result.getInputSample().exportToCSVFile("InputSample.csv")
-        result.getOutputSample().exportToCSVFile("OutputSample.csv")
         ######################################
         # Parametrage optimal
         myOptimalPoint = result.getOptimalPoint()
@@ -1034,7 +1046,7 @@ class ECLM(object):
         return PTS_list
 
 
-    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blockSize=256):
+    def estimateBootstrapParamSampleFromMankamo(self, Nbootstrap, startingPoint, fileNameRes, blockSize=256, parallel=True):
         r"""
         Generates a Bootstrap sample of the (Mankamo and general) parameters under the Mankamo assumption.
 
@@ -1042,12 +1054,19 @@ class ECLM(object):
         ----------
         Nbootstrap : int
             The size of the sample generated.
-        startingPoint : list of float,
+
+        startingPoint : list of float
             Mankamo starting point :eq:`MankamoParam` for the optimization problem.
-        fileNameRes: string,
+
+        fileNameRes: string
             The csv file that stores the sample of :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})` under the Mankamo assumption :eq:`mankamoHyp`.
-        blockSize : int,
+
+        blockSize : int
             The block size after which the sample is saved. Default value is 256.
+
+        parallel : bool
+            True if the parallelisation is used.
+            Default value is True.
 
         Notes
         -----
@@ -1071,125 +1090,130 @@ class ECLM(object):
         if os.path.exists(fileName):
             os.remove(fileName)
         with open(fileName, "w") as f:
-            f.write("#############################\n"\
-"# Ce script :\n"\
-"#    - lance un bootstrap sur la loi Multinomiale paramétrée par le vecteur d'impact total initial sous l'hypothèse de Mankamo\n"\
-"#     - calcule les estimateurs de max de vraisemblance:\n"\
-"#       de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] avec yxm_optim = 1-dR_optim\n"\
-"#     - sauve le sample de dimension 9 dans filenameRes: de type adresse/fichier.csv\n"\
-"#    - le fichier fileNameInput contient les arguments: vectImpactTotal, startingPoint: de type adresse/fichier.xml\n"\
-"\n"\
-"\n"\
-"if __name__ == '__main__':\n"\
-"    import job_bootstrap_ParamFromMankamo as jb\n"\
-"    import openturns as ot\n"\
-"    from oteclm import ECLM\n"\
-"\n"\
-"    from time import time\n"\
-"    import sys\n"\
-"\n"\
-"    from multiprocessing import Pool\n"\
-"    # barre de progression\n"\
-"    import tqdm\n"\
-"\n"\
-"    # Ot Parallelisme desactivated\n"\
-"    ot.TBB.Disable()\n"\
-"\n"\
-"    # Nombre d'échantillons bootstrap à générer\n"\
-"    Nbootstrap = int(sys.argv[1])\n"\
-"    # taille des blocs\n"\
-"    blockSize = int(sys.argv[2])\n"\
-"    # Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
-"    fileNameRes = str(sys.argv[3])\n"\
-"\n"\
-"    print('boostrap param : ')\n"\
-"    print('Nbootstrap, blockSize, fileNameRes = ', Nbootstrap, blockSize, fileNameRes )\n"\
-"\n"\
-"\n"\
-"    # Import de vectImpactTotal, startingPoint et nIntervals\n"\
-"    myStudy = ot.Study('" + studyName + "')\n"\
-"    myStudy.load()\n"\
-"    integrationAlgo = ot.IntegrationAlgorithm()\n"\
-"    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
-"    totalImpactVector = ot.Indices()\n"\
-"    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
-"    nIntervalsAsIndices = ot.Indices()\n"\
-"    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
-"    startingPoint = ot.Point()\n"\
-"    myStudy.fillObject('startingPoint', startingPoint)\n"\
-"\n"\
-"    myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
-"\n"\
-"    # Sollicitations number\n"\
-"    N = sum(totalImpactVector)\n"\
-"\n"\
-"    # Empirical distribution of the number of sets of failures among N sollicitations\n"\
-"    MultiNomDist = ot.Multinomial(N, [v/N for v in totalImpactVector])\n"\
-"\n"\
-"\n"\
-"    Ndone = 0\n"\
-"    block = 0\n"\
-"    t00 = time()\n"\
-"\n"\
-"\n"\
-"    # the dimension of res is 9\n"\
-"    allResults = ot.Sample(Nbootstrap, 9)\n"\
-"    # Si des calculs ont déjà été faits, on les importe:\n"\
-"    try:\n"\
-"        print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
-"        allResultsDone = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
-"        allResults[0:Ndone] = allResultsDone\n"\
-"        Ndone = len(allResultsDone)\n"\
-"        print('import ok')\n"\
-"    except:\n"\
-"        print('No previous results')\n"\
-"\n"\
-"    allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
-"\n"\
-"    # On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
-"    print('Skip = ', Ndone)\n"\
-"    for i in range(Ndone):\n"\
-"        noMatter = MultiNomDist.getRealization()\n"\
-"    while Ndone < Nbootstrap:\n"\
-"        block += 1\n"\
-"         # Nombre de calculs qui restent à faire\n"\
-"        size = min(blockSize, Nbootstrap - Ndone)\n"\
-"        print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nbootstrap)\n"\
-"        t0 = time()\n"\
-"        allInputs = [[MultiNomDist.getRealization(), startingPoint, Ndone + i, myECLM] for i in range(size)]\n"\
-"        t1 = time()\n"\
-"        print('t=%g' % (t1 - t0), 's')\n"\
-"\n"\
-"        t0 = time()\n"\
-"        with Pool() as pool:\n"\
-"            # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"            res = list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs)))\n"\
-"            for r in res:\n"\
-"                allResults[r[1]] = r[0]\n"\
-"        t1 = time()\n"\
-"        print('t=%g' % (t1 - t0), 's', 't (start)=%g' %(t1 - t00), 's')\n"\
-"        Ndone += size\n"\
-"        # Sauvegarde apres chaque bloc\n"\
-"        allResults.exportToCSVFile(fileNameRes)\n")
+            code = "#############################\n"\
+                "# Ce script :\n"\
+                "#    - lance un bootstrap sur la loi Multinomiale paramétrée par le vecteur d'impact total initial sous l'hypothèse de Mankamo\n"\
+                "#     - calcule les estimateurs de max de vraisemblance:\n"\
+                "#       de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] avec yxm_optim = 1-dR_optim\n"\
+                "#     - sauve le sample de dimension 9 dans filenameRes: de type adresse/fichier.csv\n"\
+                "#    - le fichier fileNameInput contient les arguments: vectImpactTotal, startingPoint: de type adresse/fichier.xml\n"\
+                "\n"\
+                "\n"\
+                "if __name__ == '__main__':\n"\
+                "    import job_bootstrap_ParamFromMankamo as jb\n"\
+                "    import openturns as ot\n"\
+                "    from oteclm import ECLM\n"\
+                "\n"\
+                "    from time import time\n"\
+                "    import sys\n"\
+                "\n"\
+                "    from multiprocessing import Pool\n"\
+                "    # barre de progression\n"\
+                "    import tqdm\n"\
+                "\n"\
+                "    # Ot Parallelisme desactivated\n"\
+                "    ot.TBB.Disable()\n"\
+                "\n"\
+                "    # Nombre d'échantillons bootstrap à générer\n"\
+                "    Nbootstrap = int(sys.argv[1])\n"\
+                "    # taille des blocs\n"\
+                "    blockSize = int(sys.argv[2])\n"\
+                "    # Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+                "    fileNameRes = str(sys.argv[3])\n"\
+                "\n"\
+                "    print('boostrap param : ')\n"\
+                "    print('Nbootstrap, blockSize, fileNameRes = ', Nbootstrap, blockSize, fileNameRes )\n"\
+                "\n"\
+                "\n"\
+                "    # Import de vectImpactTotal, startingPoint et nIntervals\n"\
+                "    myStudy = ot.Study('" + studyName + "')\n"\
+                "    myStudy.load()\n"\
+                "    integrationAlgo = ot.IntegrationAlgorithm()\n"\
+                "    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+                "    totalImpactVector = ot.Indices()\n"\
+                "    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+                "    nIntervalsAsIndices = ot.Indices()\n"\
+                "    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
+                "    startingPoint = ot.Point()\n"\
+                "    myStudy.fillObject('startingPoint', startingPoint)\n"\
+                "\n"\
+                "    # Sollicitations number\n"\
+                "    N = sum(totalImpactVector)\n"\
+                "\n"\
+                "    # Empirical distribution of the number of sets of failures among N sollicitations\n"\
+                "    MultiNomDist = ot.Multinomial(N, [v/N for v in totalImpactVector])\n"\
+                "\n"\
+                "\n"\
+                "    block = 0\n"\
+                "    t00 = time()\n"\
+                "\n"\
+                "\n"\
+                "    # Si des calculs ont déjà été faits, on les importe:\n"\
+                "    dim = 9\n"\
+                "    allResults = ot.Sample(Nbootstrap, dim)\n"\
+                "    Ndone = 0\n"\
+                "    try:\n"\
+                "        print('[ParamFromMankano] Try to import previous results from {}'.format(fileNameRes))\n"\
+                "        allResultsDone = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+                "        Ndone = len(allResultsDone)\n"\
+                "        allResults[0:min(Ndone, Nbootstrap)] = allResultsDone\n"\
+                "        print('import ok')\n"\
+                "    except:\n"\
+                "        print('No previous results')\n"\
+                "\n"\
+                "    allResults.setDescription(['Pt', 'Px', 'Cco', 'Cx', 'pi', 'db', 'dx', 'dR', 'yxm'])\n"\
+                "\n"\
+                "    # On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
+                "    print('Skip = ', Ndone)\n"\
+                "    for i in range(Ndone):\n"\
+                "        noMatter = MultiNomDist.getRealization()\n"\
+                "    while Ndone < Nbootstrap:\n"\
+                "        block += 1\n"\
+                "         # Nombre de calculs qui restent à faire\n"\
+                "        size = min(blockSize, Nbootstrap - Ndone)\n"\
+                "        print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nbootstrap)\n"\
+                "        t0 = time()\n"\
+                "        myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
+                "        allInputs = [[MultiNomDist.getRealization(), startingPoint, Ndone + i, myECLM] for i in range(size)]\n"\
+                "        t1 = time()\n"\
+                "        print('t=%g' % (t1 - t0), 's')\n"\
+                "\n"\
+                "        t0 = time()\n"
+            if parallel:
+                code += "        with Pool() as pool:\n"\
+                    "            # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+                    "            res = list(tqdm.tqdm(pool.imap_unordered(jb.job, allInputs, chunksize=1), total=len(allInputs)))\n"\
+                    "            for r in res:\n"\
+                    "                allResults[r[1]] = r[0]\n"
+            else:
+                code += "        for inP in tqdm.tqdm(allInputs):\n"\
+                    "            r = jb.job(inP)\n"\
+                    "            allResults[r[1]] = r[0]\n"
+            code += "        t1 = time()\n"\
+                "        print('t=%g' % (t1 - t0), 's', 't (start)=%g' %(t1 - t00), 's')\n"\
+                "        Ndone += size\n"\
+                "        # Sauvegarde apres chaque bloc\n"\
+                "        allResults.exportToCSVFile(fileNameRes)\n"
+            f.write(code)
 
         jobName = directory_path + "/job_bootstrap_ParamFromMankamo.py"
         if os.path.exists(jobName):
             os.remove(jobName)
         with open(jobName, "w") as f:
             f.write("#############################\n"\
-"# Ce script définit le job qui sera appliqué en parallèle lors du bootstrap"\
-"\n"\
-"import openturns as ot\n"\
-"\n"\
-"def job(inP):\n"\
-"    point, startingPoint, index, myECLM = inP\n"\
-"    vectImpactTotal = ot.Indices([int(round(x)) for x in point])\n"\
-"    myECLM.setTotalImpactVector(vectImpactTotal)\n"\
-"    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
-"    resMankamo = res[0]\n"\
-"    resGeneral = res[1]\n"\
-"    resFinal = resMankamo + resGeneral\n"\
-"    return resFinal, index\n")
+                    "# Ce script définit le job qui sera appliqué en parallèle lors du bootstrap"\
+                    "\n"\
+                    "import openturns as ot\n"\
+                    "\n"\
+                    "def job(inP):\n"\
+                    "    point, startingPoint, index, myECLM = inP\n"\
+                    "    vectImpactTotal = ot.Indices([int(round(x)) for x in point])\n"\
+                    "    myECLM.setTotalImpactVector(vectImpactTotal)\n"\
+                    "    res = myECLM.estimateMaxLikelihoodFromMankamo(startingPoint, False)\n"\
+                    "    resMankamo = res[0]\n"\
+                    "    resGeneral = res[1]\n"\
+                    "    resFinal = resMankamo + resGeneral\n"\
+                    "    return resFinal, index\n")
 
         command = 'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nbootstrap, blockSize, fileNameRes)
         os.system(command)
@@ -1198,18 +1222,24 @@ class ECLM(object):
         os.remove(studyName)
 
 
-    def computeECLMProbabilitiesFromMankano(self, fileNameInput, fileNameRes, blockSize=256):
+    def computeECLMProbabilitiesFromMankano(self, fileNameInput, fileNameRes, blockSize=256, parallel=True):
         r"""
         Computes the sample of all the ECLM probabilities from a sample of Mankamo parameters using the Mankamo assumption.
 
         Parameters
         ----------
-        fileNameInput: string,
+        fileNameInput: string
             The csv file that stores the sample of :math:`(P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})`.
-        fileNameRes: string,
+
+        fileNameRes: string
             The csv file that stores the ECLM probabilities.
-        blockSize : int,
+
+        blockSize : int
             The block size after which the sample is saved. Default value is 256.
+
+        parallel : bool
+            True if the parallelisation is used.
+            Default value is True.
 
         Notes
         -----
@@ -1234,132 +1264,142 @@ class ECLM(object):
         if os.path.exists(fileName):
             os.remove(fileName)
         with open(fileName, "w") as f:
-            f.write("#############################\n"\
-"# Ce script :\n"\
-"#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
-"#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
-"#     - sauve le sample des grandeurs probabilistes dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
-"\n"\
-"\n"\
-"if __name__ == '__main__':\n"\
-"    import openturns as ot\n"\
-"    from oteclm import ECLM\n"\
-"\n"\
-"    from time import time\n"\
-"    import sys\n"\
-"\n"\
-"    from multiprocessing import Pool\n"\
-"    # barre de progression\n"\
-"    import tqdm\n"\
-"\n"\
-"    # Ot Parallelisme desactivated\n"\
-"    ot.TBB.Disable()\n"\
-"\n"\
-"\n"\
-"    # Nombre de grappes\n"\
-"    n = int(sys.argv[1])\n"\
-"    # taille des blocs\n"\
-"    blockSize = int(sys.argv[2])\n"\
-"    # Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
-"    fileNameInput = str(sys.argv[3])\n"\
-"    # Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
-"    fileNameRes = str(sys.argv[4])\n"\
-"\n"\
-"    print('ECLM prob')\n"\
-"    print('n, fileNameInput, fileNameRes = ', n, fileNameInput, fileNameRes)\n"\
-"\n"\
-"    # Import de vectImpactTotal et startingPoint\n"\
-"    myStudy = ot.Study('" + studyName + "')\n"\
-"    myStudy.load()\n"\
-"    integrationAlgo = ot.IntegrationAlgorithm()\n"\
-"    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
-"    totalImpactVector = ot.Indices()\n"\
-"    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
-"    nIntervalsAsIndices = ot.Indices()\n"\
-"    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
-"\n"\
-"    myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
-"\n"\
-"\n"\
-"    Ndone = 0\n"\
-"    block = 0\n"\
-"    t00 = time()\n"\
-"\n"\
-"\n"\
-"    # Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
-"    # sauvé dans le fichier fileNameInput\n"\
-"    sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
-"    Nsample = sampleParam.getSize()\n"\
-"\n"\
-"\n"\
-"    # Si des calculs ont déjà été faits, on les importe:\n"\
-"    try:\n"\
-"        print('[ECLMProbabilities] Try to import previous results from {}'.format(fileNameRes))\n"\
-"        allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
-"        print('import ok')\n"\
-"    except:\n"\
-"        # la dimension du sample est 4*(n+1)\n"\
-"        dim = 4*(n+1)\n"\
-"        allResults = ot.Sample(0, dim)\n"\
-"\n"\
-"\n"\
-"    # Description\n"\
-"    desc = ot.Description()\n"\
-"    desc =  ['PEG('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
-"    desc += ['PSG('+str(k) +')' for k in range(n+1)]\n"\
-"    desc += ['PES('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
-"    desc += ['PTS('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
-"    allResults.setDescription(desc) \n"\
-"\n"\
-"    # On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
-"    Nskip = allResults.getSize()\n"\
-"    remainder_sample = sampleParam.split(Nskip)\n"\
-"    N_remainder = remainder_sample.getSize()\n"\
-"    print('N_remainder = ', N_remainder)\n"\
-"    while Ndone < N_remainder:\n"\
-"        block += 1\n"\
-"        # Nombre de calculs qui restent à faire\n"\
-"        size = min(blockSize, N_remainder - Ndone)\n"\
-"        print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', N_remainder)\n"\
-"        t0 = time()\n"\
-"        allInputs = [remainder_sample[(block-1)*blockSize + i, myECLM] for i in range(size)]\n"\
-"        t1 = time()\n"\
-"        print('t=%.3g' % (t1 - t0), 's')\n"\
-"\n"\
-"        t0 = time()\n"\
-"        pool = Pool()\n"\
-"        # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"        allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs))))\n"\
-"        pool.close()\n"\
-"        t1 = time()\n"\
-"        print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
-"        Ndone += size\n"\
-"        # Sauvegarde apres chaque bloc\n"\
-"        allResults.exportToCSVFile(fileNameRes)")
+            code = "#############################\n"\
+                "# Ce script :\n"\
+                "#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
+                "#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
+                "#     - sauve le sample des grandeurs probabilistes dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
+                "\n"\
+                "\n"\
+                "if __name__ == '__main__':\n"\
+                "    import job_bootstrap_ECLMProbabilities as jb\n"\
+                "    import openturns as ot\n"\
+                "    from oteclm import ECLM\n"\
+                "\n"\
+                "    from time import time\n"\
+                "    import sys\n"\
+                "\n"\
+                "    from multiprocessing import Pool\n"\
+                "    # barre de progression\n"\
+                "    import tqdm\n"\
+                "\n"\
+                "    # Ot Parallelisme desactivated\n"\
+                "    ot.TBB.Disable()\n"\
+                "\n"\
+                "\n"\
+                "    # Nombre de grappes\n"\
+                "    n = int(sys.argv[1])\n"\
+                "    # taille des blocs\n"\
+                "    blockSize = int(sys.argv[2])\n"\
+                "    # Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+                "    fileNameInput = str(sys.argv[3])\n"\
+                "    # Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
+                "    fileNameRes = str(sys.argv[4])\n"\
+                "\n"\
+                "    print('ECLM prob')\n"\
+                "    print('n, fileNameInput, fileNameRes = ', n, fileNameInput, fileNameRes)\n"\
+                "\n"\
+                "    # Import de vectImpactTotal et startingPoint\n"\
+                "    myStudy = ot.Study('" + studyName + "')\n"\
+                "    myStudy.load()\n"\
+                "    integrationAlgo = ot.IntegrationAlgorithm()\n"\
+                "    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+                "    totalImpactVector = ot.Indices()\n"\
+                "    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+                "    nIntervalsAsIndices = ot.Indices()\n"\
+                "    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
+                "\n"\
+                "    myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
+                "\n"\
+                "\n"\
+                "    t00 = time()\n"\
+                "\n"\
+                "\n"\
+                "    # Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+                "    # sauvé dans le fichier fileNameInput\n"\
+                "    sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
+                "    Nsample = sampleParam.getSize()\n"\
+                "\n"\
+                "\n"\
+                "    # Si des calculs ont déjà été faits, on les importe:\n"\
+                "    dim = 4*(n+1)\n"\
+                "    allResults = ot.Sample(Nsample, dim)\n"\
+                "    Ndone = 0\n"\
+                "    try:\n"\
+                "        print('[ECLMProbabilities] Try to import previous results from {}'.format(fileNameRes))\n"\
+                "        allResultsDone = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+                "        Ndone = min(Nsample, len(allResultsDone))\n"\
+                "        allResults[0:Ndone] = allResultsDone\n"\
+                "        print('import ok')\n"\
+                "    except:\n"\
+                "        print('No previous results')\n"\
+                "\n"\
+                "\n"\
+                "    # Description\n"\
+                "    desc = ot.Description()\n"\
+                "    desc =  ['PEG('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+                "    desc += ['PSG('+str(k) +')' for k in range(n+1)]\n"\
+                "    desc += ['PES('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+                "    desc += ['PTS('+str(k) + '|' +str(n) +')' for k in range(n+1)]\n"\
+                "    allResults.setDescription(desc) \n"\
+                "\n"\
+                "    # On passe les Ndone points déjà calculés (pas de pb si Ndone=0)\n"\
+                "    remainder_sample = sampleParam.split(Ndone)\n"\
+                "    N_remainder = remainder_sample.getSize()\n"\
+                "    print('N_remainder = ', N_remainder)\n"\
+                "    block = 0\n"\
+                "    while Ndone < Nsample:\n"\
+                "        block += 1\n"\
+                "        # Nombre de calculs qui restent à faire\n"\
+                "        size = min(blockSize, Nsample - Ndone)\n"\
+                "        print('Compute ECLM probabilities, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nsample)\n"\
+                "        t0 = time()\n"\
+                "        allInputs = [[remainder_sample[(block-1)*blockSize + i], Ndone + i, myECLM] for i in range(size)]\n"\
+                "        t1 = time()\n"\
+                "        print('t=%.3g' % (t1 - t0), 's')\n"\
+                "\n"\
+                "        t0 = time()\n"
+            if parallel:
+                code += "        with Pool() as pool:\n"\
+                    "            # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+                    "            res = list(tqdm.tqdm(pool.imap_unordered(jb.job, allInputs, chunksize=1), total=len(allInputs)))\n"\
+                    "            for r in res:\n"\
+                    "                allResults[r[1]] = r[0]\n"
+            else:
+                code += "        for inP in tqdm.tqdm(allInputs):\n"\
+                    "            r = jb.job(inP)\n"\
+                    "            allResults[r[1]] = r[0]\n"
+            code += "        t1 = time()\n"\
+                "        print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
+                "        Ndone += size\n"\
+                "        # Sauvegarde apres chaque bloc\n"\
+                "        allResults.exportToCSVFile(fileNameRes)"
+            f.write(code)
 
         jobName = directory_path + "/job_bootstrap_ECLMProbabilities.py"
         if os.path.exists(jobName):
             os.remove(jobName)
         with open(jobName, "w") as f:
             f.write("#############################\n"\
-"# Ce script définit le calcul de probabilités effectué en parallèle\n"\
-"\n"\
-"import openturns as ot\n"\
-"\n"\
-"def job(inP):\n"\
-"    # inP = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim, myECLM]\n"\
-"    myECLM = inP[9]\n"\
-"    myECLM.setGeneralParameter(inP[4:9])\n"\
-"    PEG_list = myECLM.computePEGall()\n"\
-"    PSG_list = myECLM.computePSGall()\n"\
-"    PES_list = myECLM.computePESall()\n"\
-"    PTS_list = myECLM.computePTSall()\n"\
-"    res_list = list()\n"\
-"    res_list += PEG_list\n"\
-"    res_list += PSG_list\n"\
-"    res_list += PES_list\n"\
-"    res_list += PTS_list\n"\
-"    return res_list\n")
+                    "# Ce script définit le calcul de probabilités effectué en parallèle\n"\
+                    "\n"\
+                    "import openturns as ot\n"\
+                    "\n"\
+                    "def job(inP):\n"\
+                    "    pointParam_Gen, index, myECLM = inP\n"\
+                    "    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+                    "    generalParameter = pointParam_Gen[4:9]\n"\
+                    "    myECLM.setGeneralParameter(generalParameter)\n"\
+                    "    PEG_list = myECLM.computePEGall()\n"\
+                    "    PSG_list = myECLM.computePSGall()\n"\
+                    "    PES_list = myECLM.computePESall()\n"\
+                    "    PTS_list = myECLM.computePTSall()\n"\
+                    "    res_list = list()\n"\
+                    "    res_list += PEG_list\n"\
+                    "    res_list += PSG_list\n"\
+                    "    res_list += PES_list\n"\
+                    "    res_list += PTS_list\n"\
+                    "    return res_list, index\n")
 
         command = 'python script_bootstrap_ECLMProbabilities.py {} {} {} {}'.format(self.n, blockSize, fileNameInput, fileNameRes)
         os.system(command)
@@ -1919,7 +1959,7 @@ class ECLM(object):
         return k - 1
 
 
-    def computeAnalyseKMaxSample(self, p, fileNameInput, fileNameRes, blockSize = 256):
+    def computeAnalyseKMaxSample(self, p, fileNameInput, fileNameRes, blockSize = 256, parallel=True):
         r"""
         Generates a :math:`k_{max}` sample and produces graphs to analyse it.
 
@@ -1934,8 +1974,12 @@ class ECLM(object):
         fileNameRes: string
             The csv file that stores the sample of :math:`k_{max}` defined by :eq:`kMaxDef`.
 
-        blockSize : int,
+        blockSize : int
             The block size after which the sample is saved. Default value is 256.
+
+        parallel : bool
+            True if the parallelisation is used.
+            Default value is True.
 
         Returns
         -------
@@ -1965,119 +2009,126 @@ class ECLM(object):
         if os.path.exists(fileName):
             os.remove(fileName)
         with open(fileName, "w") as f:
-            f.write("#############################\n"\
-"# Ce script :\n"\
-"#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
-"#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
-"#     - sauve le sample des grandeurs probabilistes dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
-"\n"\
-"if __name__ == '__main__':\n"\
-"\n"\
-"    import openturns as ot\n"\
-"    from oteclm import ECLM\n"\
-"\n"\
-"\n"\
-"    from time import time\n"\
-"    import sys\n"\
-"\n"\
-"    from multiprocessing import Pool\n"\
-"    # barre de progression\n"\
-"    import tqdm\n"\
-"\n"\
-"    # Ot Parallelisme desactivated\n"\
-"    ot.TBB.Disable()\n"\
-"\n"\
-"    # seuil de PTS\n"\
-"    p = float(sys.argv[1])\n"\
-"    # taille des blocs\n"\
-"    blockSize = int(sys.argv[2])\n"\
-"    # Nom du fichier de contenant le sample des paramètres de Mankamo: de type adresse/fichier.csv\n"\
-"    fileNameInput = str(sys.argv[3])\n"\
-"    # Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
-"    fileNameRes = str(sys.argv[4])\n"\
-"\n"\
-"    print('Calcul des réalisations de KMax')\n"\
-"    print('p, fileNameInput, fileNameRes = ', p, fileNameInput, fileNameRes)\n"\
-"\n"\
-"    # Import de vectImpactTotal\n"\
-"    myStudy = ot.Study('" + studyName + "')\n"\
-"    myStudy.load()\n"\
-"    integrationAlgo = ot.IntegrationAlgorithm()\n"\
-"    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
-"    totalImpactVector = ot.Indices()\n"\
-"    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
-"    nIntervalsAsIndices = ot.Indices()\n"\
-"    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
-"\n"\
-"    myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
-"\n"\
-"\n"\
-"    Ndone = 0\n"\
-"    block = 0\n"\
-"    t00 = time()\n"\
-"\n"\
-"    # Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
-"    # sauvé dans le fichier fileNameInput\n"\
-"    sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
-"    Nsample = sampleParam.getSize()\n"\
-"\n"\
-"\n"\
-"    # Si des calculs ont déjà été faits, on les importe:\n"\
-"    try:\n"\
-"        print('[Kmax values] Try to import previous results from {}'.format(fileNameRes))\n"\
-"        allResults = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
-"        print('import ok')\n"\
-"    except:\n"\
-"        # la dimension du sample est 1\n"\
-"        dim = 1\n"\
-"        allResults = ot.Sample(0, dim)\n"\
-"\n"\
-"\n"\
-"    # Description\n"\
-"    desc = ot.Description(['kMax'])\n"\
-"    allResults.setDescription(desc)\n"\
-"\n"\
-"    # On passe les Nskip points déjà calculés (pas de pb si Nskip=0)\n"\
-"    Nskip = allResults.getSize()\n"\
-"    remainder_sample = sampleParam.split(Nskip)\n"\
-"    N_remainder = remainder_sample.getSize()\n"\
-"    print('N_remainder = ', N_remainder)\n"\
-"    while Ndone < N_remainder:\n"\
-"        block += 1\n"\
-"        # Nombre de calculs qui restent à faire\n"\
-"        size = min(blockSize, N_remainder - Ndone)\n"\
-"        print('Generate bootstrap data, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', N_remainder)\n"\
-"        t0 = time()\n"\
-"        allInputs = [remainder_sample[(block-1)*blockSize + i] for i in range(size)]\n"\
-"        t1 = time()\n"\
-"        print('t=%.3g' % (t1 - t0), 's')\n"\
-"\n"\
-"        t0 = time()\n"\
-"        with Pool() as pool:\n"\
-"            # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
-"            allResults.add(list(tqdm.tqdm(pool.imap_unordered(job, allInputs, chunksize=1), total=len(allInputs))))\n"\
-"        t1 = time()\n"\
-"        print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
-"        Ndone += size\n"\
-"        # Sauvegarde apres chaque bloc\n"\
-"        allResults.exportToCSVFile(fileNameRes)")
+            code = "#############################\n"\
+                "# Ce script :\n"\
+                "#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
+                "#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
+                "#     - sauve le sample des grandeurs probabilistes dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
+                "\n"\
+                "if __name__ == '__main__':\n"\
+                "\n"\
+                "    import job_bootstrap_KMax as jb\n"\
+                "    import openturns as ot\n"\
+                "    from oteclm import ECLM\n"\
+                "\n"\
+                "\n"\
+                "    from time import time\n"\
+                "    import sys\n"\
+                "\n"\
+                "    from multiprocessing import Pool\n"\
+                "    # barre de progression\n"\
+                "    import tqdm\n"\
+                "\n"\
+                "    # Ot Parallelisme desactivated\n"\
+                "    ot.TBB.Disable()\n"\
+                "\n"\
+                "    # seuil de PTS\n"\
+                "    p = float(sys.argv[1])\n"\
+                "    # taille des blocs\n"\
+                "    blockSize = int(sys.argv[2])\n"\
+                "    # Nom du fichier de contenant le sample des paramètres de Mankamo: de type adresse/fichier.csv\n"\
+                "    fileNameInput = str(sys.argv[3])\n"\
+                "    # Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
+                "    fileNameRes = str(sys.argv[4])\n"\
+                "\n"\
+                "    print('Calcul des réalisations de KMax')\n"\
+                "    print('p, fileNameInput, fileNameRes = ', p, fileNameInput, fileNameRes)\n"\
+                "\n"\
+                "    # Import de vectImpactTotal\n"\
+                "    myStudy = ot.Study('" + studyName + "')\n"\
+                "    myStudy.load()\n"\
+                "    integrationAlgo = ot.IntegrationAlgorithm()\n"\
+                "    myStudy.fillObject('integrationAlgo', integrationAlgo)\n"\
+                "    totalImpactVector = ot.Indices()\n"\
+                "    myStudy.fillObject('totalImpactVector', totalImpactVector)\n"\
+                "    nIntervalsAsIndices = ot.Indices()\n"\
+                "    myStudy.fillObject('nIntervalsAsIndices', nIntervalsAsIndices)\n"\
+                "\n"\
+                "    t00 = time()\n"\
+                "\n"\
+                "    # Import de l'échantillon de [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+                "    # sauvé dans le fichier fileNameInput\n"\
+                "    sampleParam = ot.Sample.ImportFromCSVFile(fileNameInput)\n"\
+                "    Nsample = sampleParam.getSize()\n"\
+                "\n"\
+                "\n"\
+                "    # Si des calculs ont déjà été faits, on les importe:\n"\
+                "    dim = 1\n"\
+                "    allResults = ot.Sample(Nsample, dim)\n"\
+                "    Ndone = 0\n"\
+                "    try:\n"\
+                "        print('[Kmax values] Try to import previous results from {}'.format(fileNameRes))\n"\
+                "        allResultsDone = ot.Sample.ImportFromCSVFile(fileNameRes)\n"\
+                "        Ndone = len(allResultsDone)\n"\
+                "        allResults[0:min(Ndone, Nsample)] = allResultsDone\n"\
+                "        print('import ok')\n"\
+                "    except:\n"\
+                "        print('No previous results')\n"\
+                "\n"\
+                "\n"\
+                "    # Description\n"\
+                "    desc = ot.Description(['kMax'])\n"\
+                "    allResults.setDescription(desc)\n"\
+                "\n"\
+                "    # On passe les Ndone points déjà calculés (pas de pb si Ndone=0)\n"\
+                "    remainder_sample = sampleParam.split(Ndone)\n"\
+                "    N_remainder = remainder_sample.getSize()\n"\
+                "    print('N_remainder = ', N_remainder)\n"\
+                "    block = 0\n"\
+                "    while Ndone < Nsample:\n"\
+                "        block += 1\n"\
+                "        # Nombre de calculs qui restent à faire\n"\
+                "        size = min(blockSize, Nsample - Ndone)\n"\
+                "        print('Compute kMax, block=', block, 'size=', size, 'Ndone=', Ndone, 'over', Nsample)\n"\
+                "        t0 = time()\n"\
+                "        myECLM = ECLM(totalImpactVector, integrationAlgo, nIntervalsAsIndices[0])\n"\
+                "        allInputs = [[remainder_sample[(block-1)*blockSize + i], p, Ndone + i, myECLM] for i in range(size)]\n"\
+                "        t1 = time()\n"\
+                "        print('t=%.3g' % (t1 - t0), 's')\n"\
+                "\n"
+            if parallel:
+                code += "        with Pool() as pool:\n"\
+                    "            # Calcul parallèle: pas d'ordre, retourné dès que réalisé\n"\
+                    "            res = list(tqdm.tqdm(pool.imap_unordered(jb.job, allInputs, chunksize=1), total=len(allInputs)))\n"\
+                    "            for r in res:\n"\
+                    "                allResults[r[1]] = r[0]\n"
+            else:
+                code += "        for inP in tqdm.tqdm(allInputs):\n"\
+                    "            r = jb.job(inP)\n"\
+                    "            allResults[r[1]] = r[0]\n"
+            code += "        t1 = time()\n"\
+                "        print('t=%.3g' % (t1 - t0), 's', 't (start)=%.3g' %(t1 - t00), 's')\n"\
+                "        Ndone += size\n"\
+                "        # Sauvegarde apres chaque bloc\n"\
+                "        allResults.exportToCSVFile(fileNameRes)"
+            f.write(code)
 
         jobName = directory_path + "/job_bootstrap_KMax.py"
         if os.path.exists(jobName):
             os.remove(jobName)
         with open(jobName, "w") as f:
             f.write("#############################\n"\
-"# Ce script définit la tâche qui sera exécutée en parallèle\n"\
-"\n"\
-"import openturns as ot\n"\
-"\n"\
-"def job(inP):\n"\
-"    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim, myECLM]\n"\
-"    myECLM = inP[9]\n"\
-"    generalParameter = inP[4:9]\n"\
-"    myECLM.setGeneralParameter(generalParameter)\n"\
-"    kMax = myECLM.computeKMaxPTS(p)\n"\
-"    return [kMax]\n")
+                    "# Ce script définit la tâche qui sera exécutée en parallèle\n"\
+                    "\n"\
+                    "import openturns as ot\n"\
+                    "\n"\
+                    "def job(inP):\n"\
+                    "    pointParam_Gen, p, index, myECLM = inP\n"\
+                    "    # pointParam_Gen = [Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim]\n"\
+                    "    generalParameter = pointParam_Gen[4:9]\n"\
+                    "    myECLM.setGeneralParameter(generalParameter)\n"\
+                    "    kMax = myECLM.computeKMaxPTS(p)\n"\
+                    "    return [kMax], index\n")
 
         command = 'python script_bootstrap_KMax.py {} {} {} {}'.format(p, blockSize, fileNameInput, fileNameRes)
         os.system(command)
