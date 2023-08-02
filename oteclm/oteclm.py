@@ -1248,6 +1248,8 @@ class ECLM(object):
         The function generates a script *script_bootstrap_ECLMProbabilities.py* that uses the parallelisation of the pool object of the multiprocessing module and a module *job_bootstrap_ECLMProbabilities.py* where the parallel job is defined. It also creates a file *myECLMxxx.xml*, where xxx is a large random integer, that stores the total impact vector to be read by the script. All these files are removed at the end of the execution of the method.
 
         The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
+
+        The probabilities sample is stored in the same order as the parameters sample.
         """
 
         studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
@@ -1992,6 +1994,8 @@ class ECLM(object):
 
         The computation is saved in the csv file named *fileNameRes* every blockSize calculus. The computation can be interrupted: it will be restarted from the last *filenameRes* saved.
 
+        The :math:`k_{max}` sample is stored in the same order as the parameters sample.
+
         The empirical distribution is fitted on the sample. The $90\%$ confidence interval is given, computed from the empirical distribution.
         """
 
@@ -2012,8 +2016,8 @@ class ECLM(object):
             code = "#############################\n"\
                 "# Ce script :\n"\
                 "#    - récupère un échantillon de (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim] dans le fichier fileNameInput (de type adresse/fichier.csv)\n"\
-                "#     - calcule toutes les grandeurs probabilistes de l'ECLM\n"\
-                "#     - sauve le sample des grandeurs probabilistes dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
+                "#     - calcle les kMax associés \n"\
+                "#     - sauve le sample des kMax dans le fichier fileNameRes (de type adresse/fichier.csv)\n"\
                 "\n"\
                 "if __name__ == '__main__':\n"\
                 "\n"\
