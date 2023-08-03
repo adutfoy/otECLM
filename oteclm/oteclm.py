@@ -786,29 +786,42 @@ class ECLM(object):
         yMin_x = val_min * dx + y_xm
         yMax_x = val_max * dx + y_xm
 
+        # OLD CODE
+        # inputs    = ["y"]
+        # outputs   = ["z"]
+        # preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
+        # preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
+        # Kernel b
+        # If 0<k<n, the Phi^k(1-Phi)^{n-k} term is zero if either Phi=0 or Phi=1
+        # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
+        # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
+        # factor = ""
+        # if k > 0:
+        #     factor += " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
+        # if k < self.n:
+        #     factor += " * (erf_yt < 0.5 ? (0.5 - erf_yt)^" + str(self.n - k) + " : 0.0)"
+        # formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
+        # formula += "z := phib"
+        # formula += factor + ";"
+        # maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
+
+        # NEW CODE
         inputs    = ["y"]
-        outputs   = ["z"]
-        preamble  = "var yt := (y - 1.0) / " + str(dR) + ";"
-        preamble += "var erf_yt := 0.5 * erf(yt / sqrt(2.0));"
         # Kernel b
         # If 0<k<n, the Phi^k(1-Phi)^{n-k} term is zero if either Phi=0 or Phi=1
         # If k=0, the Phi^k(1-Phi)^{n-k} term is zero if Phi=1
         # If k=n, the Phi^k(1-Phi)^{n-k} term is zero if Phi=0
         factor = ""
         if k > 0:
-            factor += " * (erf_yt > -0.5 ? (0.5 + erf_yt)^" + str(k) + " : 0.0)"
+            factor += " * (0.5 * erf((y - 1.0) / " + str(dR * math.sqrt(2.0)) + ") > -0.5 ? (0.5 + 0.5 * erf((y - 1.0) / " + str(dR * math.sqrt(2.0)) + "))^" + str(k) + " : 0.0)"
         if k < self.n:
-            factor += " * (erf_yt < 0.5 ? (0.5 - erf_yt)^" + str(self.n - k) + " : 0.0)"
-        formula = preamble + "var phib := " + str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ");"
-        formula += "z := phib"
-        formula += factor + ";"
-        maFctKernelB = ot.SymbolicFunction(inputs, outputs, formula)
+            factor += " * (0.5 * erf((y - 1.0) / " + str(dR * math.sqrt(2.0)) + ") < 0.5 ? (0.5 - 0.5 * erf((y - 1.0) / " + str(dR * math.sqrt(2.0)) + "))^" + str(self.n - k) + " : 0.0)"
+        formulas = [str(1.0 / (db * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * y^2 / " + str(db * db) + ")" + factor]
+        maFctKernelB = ot.SymbolicFunction(inputs, formulas)
 
         # Kernel X
-        formula = preamble + "var phix := " + str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ");"
-        formula += "z := phix"
-        formula += factor + ";"
-        maFctKernelX = ot.SymbolicFunction(inputs, outputs, formula)
+        formulas = [str(1.0 / (dx * math.sqrt(2.0 * math.pi))) + " * exp(-0.5 * (y - " + str(y_xm) + ")^2 / " + str(dx * dx) + ")" + factor]
+        maFctKernelX = ot.SymbolicFunction(inputs, formulas)
 
         # base load part integration
         int_b = 0.0
@@ -1996,7 +2009,7 @@ class ECLM(object):
 
         The :math:`k_{max}` sample is stored in the same order as the parameters sample.
 
-        The empirical distribution is fitted on the sample. The :mth:`90\%` confidence interval is given, computed from the empirical distribution.
+        The empirical distribution is fitted on the sample. The :math:`90\%` confidence interval is given, computed from the empirical distribution.
         """
 
         studyName = "myECLM" + str(ot.RandomGenerator.IntegerGenerate(1000000000)) + ".xml"
