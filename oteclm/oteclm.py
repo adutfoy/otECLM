@@ -165,11 +165,17 @@ class ECLM(object):
     Noting that the first term does not depend on the parameter :math:`\vect{\theta}`, then we also have:
 
     .. math::
-        :label: optimGenReduced
+        :label: optimGenReduced_0
 
         \vect{\theta}_{optim} = \arg \max_{\vect{\theta}} \sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)
 
+    At last, we normalize the log-likelihood values and we consider the following optimisation problem:
 
+    .. math::
+        :label: optimGenReduced
+
+        \vect{\theta}_{optim} = \arg \max_{\vect{\theta}} \dfrac{\sum_{k=0}^n V_t^{n,N}[k] \log \mathrm{PEG}(k|n)}{\sum_{k=0}^n V_t^{n,N}[k]}
+    
     **Mankamo method:**
 
     Mankamo introduces a new set of parameters: :math:`(P_t, P_x, C_{co}, C_x, y_{xm})` defined from the general parameter :eq:`generalParam` as follows:
@@ -573,15 +579,14 @@ class ECLM(object):
             # graphe (logPx) pour Cco = Cco_optim et Cx = Cx_optim
             # graphe de la loglikelihood
             print('graph (Cco, Cx) = (Cco_optim, Cx_optim)')
-            g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, logPx_sup, 2*NbPt)
-
-            # + contrainte sur logPx
             limSup_logPx = ma_Fct_cont_LogPx_Cx_fixedCcoCx([logPx_optim])[0] + logPx_optim
+            g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, 1.1*limSup_logPx, 2*NbPt)
+            # + contrainte sur logPx
             minValGraph = g_fixedCcoCx.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedCcoCx.getDrawable(0).getData().getMax()[1]
             lineConstraint = ot.Curve([limSup_logPx,limSup_logPx], [minValGraph, maxValGraph], r'$\log P_x \leq f(C_x^{optim})$')
             lineConstraint.setLineStyle('dashed')
-            lineConstraint.setColor('black')
+            lineConstraint.setColor('black')          
             g_fixedCcoCx.add(lineConstraint)
 
             # + point optimal
@@ -1466,24 +1471,27 @@ class ECLM(object):
         # Graphe des marginales (Pt, Px_optim, Cco_optim, Cx_optim, pi_weight_optim, db_optim, dx_optim, dR_optim, yxm_optim)
         for k in range(sampleParamAll.getDimension()):
             sample = sampleParamAll.getMarginal(k)
-            Histo = ot.HistogramFactory().build(sample)
-            graph = Histo.drawPDF()
-            KS = ot.KernelSmoothing()
-            KS.setBoundaryCorrection(True)
-            KS.setBoundingOption(ot.KernelSmoothing.BOTH)
             try:
-                KS_dist = KS.build(sample)
-                graph.add(KS_dist.drawPDF())
-                graph.setColors(['blue', 'red'])
-                graph.setLegends(['Histo', 'KS'])
-                graph.setLegendPosition('topright')
+                Histo = ot.HistogramFactory().build(sample)
+                graph = Histo.drawPDF()
+                KS = ot.KernelSmoothing()
+                KS.setBoundaryCorrection(True)
+                KS.setBoundingOption(ot.KernelSmoothing.BOTH)
+                try:
+                    KS_dist = KS.build(sample)
+                    graph.add(KS_dist.drawPDF())
+                    graph.setColors(['blue', 'red'])
+                    graph.setLegends(['Histo', 'KS'])
+                    graph.setLegendPosition('topright')
+                except:
+                    dirac = ot.DiracFactory().build(sample)
+                    graph.add(dirac.drawPDF())
+                    graph.setColors(['blue', 'red'])
+                    graph.setLegends(['Histo', 'Dirac'])
+                    graph.setLegendPosition('topright')
+                    graph.setXTitle(descParam[k])
             except:
-                dirac = ot.DiracFactory().build(sample)
-                graph.add(dirac.drawPDF())
-                graph.setColors(['blue', 'red'])
-                graph.setLegends(['Histo', 'Dirac'])
-                graph.setLegendPosition('topright')
-            graph.setXTitle(descParam[k])
+                graph = ot.Graph()
             graphMarg_list.append(graph)
 
         return graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam
@@ -1623,6 +1631,7 @@ class ECLM(object):
                 graphMargPSG_list.append(graph)
                 descMargPSG.add('PSG_'+str(k))
             else:
+                print(samplePSG_k)
                 KS_dist = ot.DiracFactory().build(samplePSG_k)
                 graph = KS_dist.drawPDF()
                 graph.setColors(['red'])
