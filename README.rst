@@ -18,7 +18,7 @@ The install procedure is performed as follows:
 
 .. code-block:: shell
 
-    $ python install otECLM-main.zip
+    $ pip install otECLM-main.zip
    
 
 Install from source
