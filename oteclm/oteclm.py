@@ -1589,7 +1589,14 @@ class ECLM(object):
         KS.setLowerBound(0.0)
         KS.setUpperBound(1.1)
 
+        # Les bornes d'affichage de la PDF basées sur q15 et q85 risquent d'être égales
+        ot.ResourceMap.SetAsScalar('Distribution-QMin', 0.05)
+        ot.ResourceMap.SetAsScalar('Distribution-QMax', 0.95)
 
+        # Pour éviter que la TruncatedDistribution (KS avec bornes)
+        # déborde de son range imposé de epsilon = 1e-12 par défaut!
+        ot.ResourceMap.SetAsScalar('Distribution-DefaultQuantileEpsilon', 1.0e-15)
+        
         for k in range(kMax+1):
             samplePEG_k = samplePEG.getMarginal(k)
             samplePSG_k = samplePSG.getMarginal(k)
@@ -1631,7 +1638,6 @@ class ECLM(object):
                 graphMargPSG_list.append(graph)
                 descMargPSG.add('PSG_'+str(k))
             else:
-                print(samplePSG_k)
                 KS_dist = ot.DiracFactory().build(samplePSG_k)
                 graph = KS_dist.drawPDF()
                 graph.setColors(['red'])
@@ -1728,6 +1734,14 @@ class ECLM(object):
         KS.setLowerBound(0.0)
         KS.setUpperBound(1.1)
 
+        # Les bornes d'affichage de la PDF basées sur q15 et q85 risquent d'être égales
+        ot.ResourceMap.SetAsScalar('Distribution-QMin', 0.05)
+        ot.ResourceMap.SetAsScalar('Distribution-QMax', 0.95)
+        
+        # Pour éviter que la TruncatedDistribution (KS avec bornes)
+        # déborde de son range imposé de epsilon = 1e-12 par défaut!
+        ot.ResourceMap.SetAsScalar('Distribution-DefaultQuantileEpsilon', 1.0e-15)
+
         IC_PEG_list = list()
         IC_PSG_list = list()
         IC_PES_list = list()
@@ -1793,14 +1807,11 @@ class ECLM(object):
             print('Ordre k=', k)
             try:
                 print('PEG...')
-                state = ot.RandomGenerator.GetState()
-                ot.RandomGenerator.SetSeed(0)
                 best_model_PEG_k, best_result_PEG_k = ot.FittingTest.BestModelLilliefors(samplePEG_k, factoryColl)
-                ot.RandomGenerator.SetState(state)
-
                 print('Best model PEG(', k, '|n) : ', best_model_PEG_k, 'p-value = ', best_result_PEG_k.getPValue())
                 best_model_PEG_k = best_model_PEG_k.getName()
             except:
+                print('Not able to fit any model')
                 pass
             try:
                 print('PSG...')
@@ -1808,6 +1819,7 @@ class ECLM(object):
                 print('Best model PSG(', k, '|n) : ', best_model_PSG_k, 'p-value = ', best_result_PSG_k.getPValue())
                 best_model_PSG_k = best_model_PSG_k.getName()
             except:
+                print('Not able to fit any model')
                 pass
             try:
                 print('PES...')
@@ -1815,6 +1827,7 @@ class ECLM(object):
                 print('Best model PES(', k, '|n) : ', best_model_PES_k, 'p-value = ', best_result_PES_k.getPValue())
                 best_model_PES_k = best_model_PES_k.getName()
             except:
+                print('Not able to fit any model')
                 pass
             try:
                 print('PTS...')
@@ -1822,6 +1835,7 @@ class ECLM(object):
                 print('Best model PTS(', k, '|n) : ', best_model_PTS_k, 'p-value = ', best_result_PTS_k.getPValue())
                 best_model_PTS_k = best_model_PTS_k.getName()
             except:
+                print('Not able to fit any model')
                 pass
             print('')
 
