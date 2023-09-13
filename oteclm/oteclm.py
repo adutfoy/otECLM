@@ -935,7 +935,7 @@ class ECLM(object):
         # special computation on that case
         if k == 1:
             PSG = self.computePSG1()
-            self.PSGAll[0] = PSG
+            self.PSGAll[1] = PSG
             return PSG
 
         PEGs = self.computePEGall()
