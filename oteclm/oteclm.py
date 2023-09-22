@@ -405,7 +405,9 @@ class ECLM(object):
 
     def logVrais_Mankamo(self, X):
         logPx, Cco, Cx = X
-
+        # Save the values present before the call to the method
+        oldGeneralParam = self.generalParameter
+        
         # X is not in the definition domain of PEG
         if not self.verifyMankamoConstraints((math.exp(logPx), Cco, Cx)):
             if self.verbose:
@@ -425,6 +427,9 @@ class ECLM(object):
                 log_PEG_k = math.log(val)
                 S += self.totalImpactVector[k] * log_PEG_k
         value = S / sum(self.totalImpactVector)
+        
+        # Restore the values present before the call to the method
+        self.setGeneralParameter(oldGeneralParam)
         return [value]
     
 
@@ -554,10 +559,11 @@ class ECLM(object):
             ma_Fct_cont_LogPx_Cx_fixedCcoCx = ot.ParametricFunction(ma_Fct_cont_LogPx_Cx, [1,2], [Cco_optim, Cx_optim])
             ma_Fct_cont_LogPx_Cx_fixedlogPxCco = ot.ParametricFunction(ma_Fct_cont_LogPx_Cx, [0,1], [logPx_optim, Cco_optim])
 
-            maFctLogVrais_Mankamo_fixedlogPx =ot. ParametricFunction(maFctLogVrais_Mankamo, [0], [logPx_optim])
+            maFctLogVrais_Mankamo_fixedlogPx =ot.ParametricFunction(maFctLogVrais_Mankamo, [0], [logPx_optim])
             maFctLogVrais_Mankamo_fixedCco = ot.ParametricFunction(maFctLogVrais_Mankamo, [1], [Cco_optim])
             maFctLogVrais_Mankamo_fixedCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [2], [Cx_optim])
             maFctLogVrais_Mankamo_fixedlogPxCco = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,1], [logPx_optim, Cco_optim])
+
             maFctLogVrais_Mankamo_fixedCcoCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [1,2], [Cco_optim, Cx_optim])
             maFctLogVrais_Mankamo_fixedlogPxCx = ot.ParametricFunction(maFctLogVrais_Mankamo, [0,2], [logPx_optim, Cx_optim])
 
@@ -581,6 +587,7 @@ class ECLM(object):
             print('graph (Cco, Cx) = (Cco_optim, Cx_optim)')
             limSup_logPx = ma_Fct_cont_LogPx_Cx_fixedCcoCx([logPx_optim])[0] + logPx_optim
             g_fixedCcoCx = maFctLogVrais_Mankamo_fixedCcoCx.draw(logPx_inf, 1.1*limSup_logPx, 2*NbPt)
+
             # + contrainte sur logPx
             minValGraph = g_fixedCcoCx.getDrawable(0).getData().getMin()[1]
             maxValGraph = g_fixedCcoCx.getDrawable(0).getData().getMax()[1]
@@ -656,7 +663,7 @@ class ECLM(object):
             # contrainte sur logPx et Cx
             dr = ma_Fct_cont_LogPx_Cx_fixedCco.draw([logPx_inf, Cco_inf], [logPx_sup, Cco_sup], [NbPt]*2).getDrawable(0)
             dr.setLevels([0.0])
-            #dr.setLegend(r'$\log P_x \leq f(C_x)$')
+            # dr.setLegend(r'$\log P_x \leq f(C_x)$')
             dr.setLegend('constraint')
             dr.setLineStyle('dashed')
             dr.setColor('black')
@@ -720,7 +727,10 @@ class ECLM(object):
             g_fixedlogPx.setTitle(r'Log likelihood at $\log P_{x} = $'+ format(logPx_optim,'.2E'))
             g_fixedlogPx.setLegendPosition('bottomright')
 
-        return mankamoParam, generalParam, finalLogLikValue, [g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx]
+        # We have to restore the value of the parameters as before the graphs, because they are modified at each evaluation of the log-likelihood
+        self.setMankamoParameter(mankamoParam)
+        
+        return self.MankamoParameter, self.generalParameter, finalLogLikValue, [g_fixedlogPxCco, g_fixedlogPxCx, g_fixedCcoCx, g_fixedCx, g_fixedCco, g_fixedlogPx]
 
     def computeGeneralParamFromMankamo(self, mankamoParam):
         r"""
@@ -775,7 +785,7 @@ class ECLM(object):
 
         if self.PEGAll[k] != -1.0:
             return self.PEGAll[k]
-        
+
         pi_weight, db, dx, dR, y_xm = self.generalParameter
 
         # Numerical range of the Normal() distribution
