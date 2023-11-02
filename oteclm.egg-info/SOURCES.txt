@@ -1,0 +1,16 @@
+AUTHORS
+COPYING
+COPYING.LESSER
+LICENSE
+README.rst
+setup.cfg
+setup.py
+oteclm/__init__.py
+oteclm/oteclm.py
+oteclm.egg-info/PKG-INFO
+oteclm.egg-info/SOURCES.txt
+oteclm.egg-info/dependency_links.txt
+oteclm.egg-info/requires.txt
+oteclm.egg-info/top_level.txt
+test/test_class.py
+test/test_class_2.py
