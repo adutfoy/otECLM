@@ -8,7 +8,8 @@
 
 """
 
+# flake8: noqa
+
 from .oteclm import ECLM
 
-__version__ = '0.1'
-
+__version__ = "0.1"
