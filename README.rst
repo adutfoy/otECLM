@@ -4,22 +4,15 @@ oteclm module
 oteclm is an OpenTURNS module. It allows the treatment of failure probabilities and dependencies in highly redundant systems according to the Extended Common Load Model (ECLM) .
 
 
-Install from archive
-====================
+Install from git
+================
 
 Get the archive:
 
 .. code-block:: shell
 
-    $ wget https://github.com/adutfoy/otECLM/archive/main.zip -O otECLM-main.zip
+    $ pip install git+https://github.com/adutfoy/otECLM.git
  
-
-The install procedure is performed as follows:
-
-.. code-block:: shell
-
-    $ pip install otECLM-main.zip
-   
 
 Install from source
 ===================
@@ -35,13 +28,7 @@ The install procedure is performed as follows:
 
 .. code-block:: shell
 
-    $ python setup.py install
-
-If you need to install the module in the user folder :
-
-.. code-block:: shell
-
-    $ python setup.py install --user
+    $ pip install .
 
 To run the tests:
 
@@ -49,11 +36,11 @@ To run the tests:
 
     $ pytest
 
-Finally to build the documentation, you should invoke the `build_sphinx` option :
+Finally to build the documentation, you should install the documentation requirements :
 
 .. code-block:: shell
 
-    $ python setup.py build_sphinx
+    $ pip install .[doc]
 
 This builds the documentation in the `build` folder. Another option is to launch the `make` command:
 

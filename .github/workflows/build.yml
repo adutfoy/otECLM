@@ -4,16 +4,16 @@ jobs:
   conda-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v6
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
+          conda-remove-defaults: "true"
       - name: Build
         shell: bash -l {0}
         run: |
-          conda install -y openturns numpy pytest numpydoc sphinx sphinx-gallery pandoc tqdm "matplotlib<3.7"
-          conda install -c conda-forge sphinx_rtd_theme
-          python setup.py install
+          conda install -y openturns pytest numpydoc sphinx sphinx-gallery pandoc tqdm matplotlib sphinx_rtd_theme
+          pip install .
           pytest
           sudo apt install -y texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra
           make html -C doc
