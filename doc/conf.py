@@ -12,7 +12,6 @@
 # serve to show the default.
 
 import sys, os
-from distutils.version import LooseVersion
 import sphinx
 import sphinx_gallery
 import subprocess
@@ -52,10 +51,10 @@ sphinx_gallery_conf = {
     'exclude_implicit_doc': {},
 }
 
-if LooseVersion(sphinx.__version__) >= LooseVersion('1.8'):
-    autodoc_default_options = {'members': None, 'inherited-members': None, 'exclude-members': 'thisown'}
-else:
-    autodoc_default_flags =  ['members', 'inherited-members']
+autodoc_default_options = {
+    'members': None,
+    'inherited-members': None,
+    'exclude-members': 'thisown'}
 
 try:
     import sphinx.ext.imgmath
