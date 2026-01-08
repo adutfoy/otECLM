@@ -1,9 +1,11 @@
 import numpy as np
 import openturns as ot
-import openturns.viewer as otView
 import math as math
 from time import time
+import subprocess
+import sys
 import tqdm
+
 
 class ECLM(object):
     r"""
@@ -1145,7 +1147,7 @@ class ECLM(object):
                 "    Nbootstrap = int(sys.argv[1])\n"\
                 "    # taille des blocs\n"\
                 "    blockSize = int(sys.argv[2])\n"\
-                "    # Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+                "    # Nom du fichier csv qui contiendra le sample des paramètres (P_t, P_x, C_{co}, C_x, pi, d_b, d_x, d_R, y_{xm})\n"\
                 "    fileNameRes = str(sys.argv[3])\n"\
                 "\n"\
                 "    print('boostrap param : ')\n"\
@@ -1242,8 +1244,8 @@ class ECLM(object):
                     "    resFinal = resMankamo + resGeneral\n"\
                     "    return resFinal, index\n")
 
-        command = 'python script_bootstrap_ParamFromMankamo.py {} {} {}'.format(Nbootstrap, blockSize, fileNameRes)
-        os.system(command)
+        command = [sys.executable, "script_bootstrap_ParamFromMankamo.py", f"{Nbootstrap}", f"{blockSize}", fileNameRes]
+        subprocess.run(command, check=True)
         os.remove(fileName)
         os.remove(jobName)
         os.remove(studyName)
@@ -1320,7 +1322,7 @@ class ECLM(object):
                 "    n = int(sys.argv[1])\n"\
                 "    # taille des blocs\n"\
                 "    blockSize = int(sys.argv[2])\n"\
-                "    # Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, \pi, d_b, d_x, d_R, y_{xm})\n"\
+                "    # Nom du fichier csv contenant le sample des paramètres (P_t, P_x, C_{co}, C_x, pi, d_b, d_x, d_R, y_{xm})\n"\
                 "    fileNameInput = str(sys.argv[3])\n"\
                 "    # Nom du fichier de sauvegarde: de type adresse/fichier.csv\n"\
                 "    fileNameRes = str(sys.argv[4])\n"\
@@ -1430,8 +1432,8 @@ class ECLM(object):
                     "    res_list += PTS_list\n"\
                     "    return res_list, index\n")
 
-        command = 'python script_bootstrap_ECLMProbabilities.py {} {} {} {}'.format(self.n, blockSize, fileNameInput, fileNameRes)
-        os.system(command)
+        command = [sys.executable, "script_bootstrap_ECLMProbabilities.py", f"{self.n}", f"{blockSize}", fileNameInput, fileNameRes]
+        subprocess.run(command, check=True)
         os.remove(fileName)
         os.remove(jobName)
         os.remove(studyName)
@@ -2179,8 +2181,8 @@ class ECLM(object):
                     "    kMax = myECLM.computeKMaxPTS(p)\n"\
                     "    return [kMax], index\n")
 
-        command = 'python script_bootstrap_KMax.py {} {} {} {}'.format(p, blockSize, fileNameInput, fileNameRes)
-        os.system(command)
+        command = [sys.executable, "script_bootstrap_KMax.py", f"{p}", f"{blockSize}", fileNameInput, fileNameRes]
+        subprocess.run(command, check=True)
         os.remove(fileName)
         os.remove(jobName)
         os.remove(studyName)
