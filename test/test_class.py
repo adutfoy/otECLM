@@ -1,8 +1,5 @@
 import oteclm
-import numpy as np
 import openturns as ot
-import pytest
-import numpy.testing as npt
 import openturns.testing as ott
 
 def test_class():
