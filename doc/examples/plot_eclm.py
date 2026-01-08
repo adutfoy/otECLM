@@ -8,7 +8,7 @@ Extended Common Load Modelling
 
 # %%
 import openturns as ot
-from openturns.viewer import View
+import openturns.viewer as otv
 import oteclm
 
 # %%
@@ -25,15 +25,7 @@ import oteclm
 
 # %%
 n = 7
-vectImpactTotal = ot.Indices(n+1)
-vectImpactTotal[0] = 1000000
-vectImpactTotal[1] = 2000
-vectImpactTotal[2] = 200
-vectImpactTotal[3] = 30
-vectImpactTotal[4] = 20
-vectImpactTotal[5] = 5
-vectImpactTotal[6] = 0
-vectImpactTotal[7] = 0
+vectImpactTotal = ot.Indices([1000000, 2000, 200, 30, 20, 5, 0, 0])
 
 # %%
 # Create the ECLM class. We will use the Gauss Legendre quadrature algorithm to compute all the integrals of the ECLM model. The use of 50 points is sufficicient to reach a good precision.
@@ -87,8 +79,7 @@ for i in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 # Compute the ECLM probabilities
@@ -153,15 +144,13 @@ graphPairsMankamoParam, graphPairsGeneralParam, graphMarg_list, descParam = myEC
 # Deactivate grid to make matplotlib happy
 graphPairsMankamoParam = deactivateGrid(graphPairsMankamoParam)
 
-view = View(graphPairsMankamoParam)
-view.show()
+view = otv.View(graphPairsMankamoParam)
 
 # %%
 # Deactivate grid to make matplotlib happy
 graphPairsGeneralParam = deactivateGrid(graphPairsGeneralParam)
 
-view = View(graphPairsGeneralParam)
-view.show()
+view = otv.View(graphPairsGeneralParam)
 
 # We estimate the distribution of each parameter with a Histogram and a normal kernel smoothing.
 
@@ -173,8 +162,7 @@ for k in range(len(graphMarg_list)):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 # Graphically analyse the bootstrap sample of the ECLM probabilities
@@ -199,29 +187,25 @@ descMargPTS = desc_list[5]
 # Deactivate grid to make matplotlib happy
 graphPairs_list[0] = deactivateGrid(graphPairs_list[0])
 
-view = View(graphPairs_list[0])
-view.show()
+view = otv.View(graphPairs_list[0])
 
 # %%
 # Deactivate grid to make matplotlib happy
 graphPairs_list[1] = deactivateGrid(graphPairs_list[1])
 
-view = View(graphPairs_list[1])
-view.show()
+view = otv.View(graphPairs_list[1])
 
 # %%
 # Deactivate grid to make matplotlib happy
 graphPairs_list[2] = deactivateGrid(graphPairs_list[2])
 
-view = View(graphPairs_list[2])
-view.show()
+view = otv.View(graphPairs_list[2])
 
 # %%
 # Deactivate grid to make matplotlib happy
 graphPairs_list[3] = deactivateGrid(graphPairs_list[3])
 
-view = View(graphPairs_list[3])
-view.show()
+view = otv.View(graphPairs_list[3])
 
 # %%
 # Fix a k <=kMax
@@ -229,8 +213,7 @@ view.show()
 k = 0
 gl = graphPEG_PES_PTS_list[k]
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 len(graphMargPEG_list)
@@ -241,8 +224,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -252,8 +234,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -263,8 +244,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -274,8 +254,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 # Fit a distribution to the ECLM probabilities
@@ -316,8 +295,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -327,8 +305,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -338,8 +315,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 gl = ot.GridLayout(2, 3)
@@ -349,8 +325,7 @@ for k in range(6):
 
 # Deactivate grid to make matplotlib happy
 gl = deactivateGrid(gl)
-view = View(gl)
-view.show()
+view = otv.View(gl)
 
 # %%
 # Analyse the minimal multiplicity which probability is greater than a given threshold
@@ -382,5 +357,7 @@ gKmax = myECLM.computeAnalyseKMaxSample(p, fileNameSampleParam, fileNameSampleKm
 
 # %%
 gKmax.setGrid(False)
-view = View(gKmax)
-view.show()
+view = otv.View(gKmax)
+
+# %%
+otv.View.ShowAll()
