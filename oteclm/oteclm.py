@@ -477,12 +477,11 @@ class ECLM(object):
         optimPb.setBounds(boundsParam)
         # algo Cobyla pour ne pas avoir les gradients
         myAlgo = ot.Cobyla(optimPb)
-        myAlgo.setVerbose(self.verbose)
         if self.verbose:
             ot.Log.Show(ot.Log.ALL)
         #myAlgo.setIgnoreFailure(True)
         myAlgo.setRhoBeg(0.1)
-        myAlgo.setMaximumEvaluationNumber(10000)
+        myAlgo.setMaximumCallsNumber(10000)
         myAlgo.setMaximumConstraintError(1e-4)
         myAlgo.setMaximumAbsoluteError(1e-4)
         myAlgo.setMaximumRelativeError(1e-3)
